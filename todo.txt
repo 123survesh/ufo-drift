@@ -1,0 +1,6 @@
+todo
+
+Map Generator
+Use the maps generated to create a looping map using multiple canvases
+Write code to move the map
+Insert a square in the middle of the canvas to showcase a car
