@@ -16,6 +16,14 @@ var Vector2 = (function(){
 		_set.call(this, x, y);
 	};
 
+	vec2.prototype.setX = function(x) {
+		_setX.call(this, x);
+	};
+
+	vec2.prototype.setY = function(y) {
+		_setY.call(this, y);
+	};
+
 	return vec2;
 })();
 

@@ -1,5 +1,5 @@
 /*
-Dependency Canvaz, deg2Rad, Vector2
+Dependency Canvaz, degToRad, Vector2
 
 ToDo
 
@@ -46,40 +46,103 @@ var Map = (function() {
             width: this.length
         };
 
-        var startX = this.width / 4;
-        //left and down facing turn
-        this.turn = new Canvaz(canvasConfig);
-        this.turn.ctx.beginPath();
-        this.turn.ctx.arc(0, this.length, this.length, degToRad(270), degToRad(360));
-        this.turn.ctx.moveTo(0, 0);
-        this.turn.ctx.lineTo(0, this.length);
-        this.turn.ctx.lineTo(this.length, this.length);
-        this.turn.ctx.lineTo(0, this.length);
-        this.turn.ctx.fill();
+        //left and down facing arc
+        this.arc = new Canvaz(canvasConfig);
+        this.arc.ctx.beginPath();
+        this.arc.ctx.arc(0, this.length, this.length, degToRad(270), degToRad(360));
+        this.arc.ctx.moveTo(0, 0);
+        this.arc.ctx.lineTo(0, this.length);
+        this.arc.ctx.lineTo(this.length, this.length);
+        this.arc.ctx.lineTo(0, this.length);
+        this.arc.ctx.fill();
 
         // vertical path
         this.path = new Canvaz(canvasConfig);
         this.path.ctx.fillRect(0, 0, this.length, this.length);
 
+        _createMaplings();
     }
 
-    function _createMap(direction)
+    function _createMaplings()
     {
-    	direction = direction.split("-");
-    	var arcStart = new Vector2();
-    	switch(direction[0])
+    	var keys = Object.keys(dir2num);
+    	var keyLength = keys.length;
+    	for(var i=0;i<keyLength;i++)
     	{
-    		case 'v':
-    		{
-    			var upFlag = (direction[1] === 'u')? true : false;
-
-    			break;
-    		}
-    		case 'h':
-    		{
-    			var leftFlag = (direction[1] === 'l')? true : false;
-    		}
+    		_createMapling(keys[i]);
     	}
+    }
+
+    function _createMapling(direction) {
+    	var dir = direction;
+        direction = direction.split("-");
+        var arcStart = new Vector2(); // init to (0,0)
+        var pathStart = new Vector2();
+        var canvasConfig = {
+            height: this.height,
+            width: this.width
+        }
+        var mapling = new Canvaz(canvasConfig); //a small map section / part
+        var arcCopy = this.arc.getCopy();
+        var pathCopy = this.path.getCopy();
+        var startX = this.width / 4;
+        var startY = this.height / 4;
+        switch (direction[0]) {
+            case 'v':
+                {
+                    var upFlag = (direction[1] === 'u') ? true : false; // arc goes up or down
+                    var leftFlag = (direction[2] === 'l') ? true : false; // arc faces left or right
+                    if (upFlag) {
+                        arcStart.setX(startX);
+                        pathStart.set(startX, this.length);
+
+                        if (!leftFlag) {
+                            arcCopy.ctx.scale(-1, 1);
+                        }
+                    } else {
+                        arcStart.set(startX, this.length);
+                        pathStart.setX(startX);
+
+                        if (leftFlag) {
+                            arcCopy.ctx.scale(1, -1);
+                        } else {
+                            arcCopy.ctx.scale(-1, -1);
+                        }
+                    }
+
+                    mapling.ctx.drawImage(arcCopy, arcStart.x, arcStart.y);
+                    mapling.ctx.drawImage(this.path, pathStart.x, pathStart.y);
+
+                    break;
+                }
+            case 'h':
+                {
+                    pathCopy.ctx.rotate(degToRad(90));
+                    var leftFlag = (direction[1] === 'l') ? true : false; // arc goes left or right
+                    var upFlag = (direction[2] === 'u') ? true : false; // arc faces up or down
+
+                    if (leftFlag) {
+                        arcStart.setY(startY);
+                        pathStart.set(this.length, startY);
+
+                        if (upFlag) {
+                            arcCopy.ctx.scale(-1, -1);
+                        } else {
+                            arcCopy.ctx.scale(-1, 1);
+                        }
+                    } else {
+                        arcStart.set(this.length, startY);
+                        pathStart.setY(startY);
+
+                        if (upFlag) {
+                            arcCopy.ctx.scale(1, -1);
+                        }
+                    }
+                    mapling.ctx.drawImage(arcCopy, arcStart.x, arcStart.y);
+                    mapling.ctx.drawImage(pathCopy, pathStart.x, pathStart.y);
+                }
+        }
+        this.maps[dir2num[dir]] = mapling;
     }
 
     return map;

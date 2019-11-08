@@ -35,5 +35,20 @@ var Canvaz = (function () {
         this.canvas.style.display = "none";
     }
 
+    function _getCopy()
+    {
+        var copy = document.createElement('canvas');
+        copy.height = this.height;
+        copy.width = this.width;
+        var ctx = copy.getContext('2d');
+        ctx.drawImage(this.canvas, 0, 0);
+        return {canvas: copy, ctx: ctx};
+    }
+
+    Canvaz.prototype.getCopy = function()
+    {
+        return _getCopy.call(this);
+    }
+
     return Canvaz;
 })();
