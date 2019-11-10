@@ -12,6 +12,16 @@ var Vector2 = (function(){
 		this.y = y;
 	}
 
+	function _setX(x)
+	{
+		this.x = x;
+	}
+
+	function _setY(y)
+	{
+		this.y = y;
+	}
+
 	vec2.prototype.set = function(x, y) {
 		_set.call(this, x, y);
 	};
@@ -67,4 +77,17 @@ function updateObject(source, destination, keyList)
 			destination[keys[i]] = source[keys[i]]; // parameter sent as reference hence updates in the memory location
 		}
 	}
+}
+
+function mirrorImage(ctx, image, horizontal = false, vertical = false){
+	var x = 0, y = 0;
+    ctx.save();  // save the current canvas state
+    ctx.setTransform(
+        horizontal ? -1 : 1, 0, // set the direction of x axis
+        0, vertical ? -1 : 1,   // set the direction of y axis
+        x + horizontal ? image.width : 0, // set the x origin
+        y + vertical ? image.height : 0   // set the y origin
+    );
+    ctx.drawImage(image,0,0);
+    ctx.restore(); // restore the state as it was when this function was called
 }

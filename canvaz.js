@@ -42,7 +42,7 @@ var Canvaz = (function () {
         copy.width = this.width;
         var ctx = copy.getContext('2d');
         ctx.drawImage(this.canvas, 0, 0);
-        return {canvas: copy, ctx: ctx};
+        return {canvas: copy, ctx: ctx, height: this.height, width: this.width};
     }
 
     Canvaz.prototype.getCopy = function()
