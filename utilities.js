@@ -36,7 +36,7 @@ var Vector2 = (function() {
 function distanceBetween(a, b) {
     var x = a.x - b.x;
     var y = a.y - b.y;
-    return Math.sqrt(Math.abs((x * x) - (y * y)));
+    return Math.sqrt((x * x) + (y * y));
 }
 
 function addAttributes(element, attributes) {
@@ -111,17 +111,10 @@ var curveTranslator = (function() {
 
     function _rotate() {
         this.angle += this.step;
-        if (Math.abs(this.angle) < 360 && this.angle > 0) {
+        if (this.angle < 360) {
             this.callback(this.angle);
         } else {
-        	if(this.clockwiseFlag)
-        	{
             	this.angle = 0;
-        	}
-        	else
-        	{
-        		this.angle = 360;
-        	}
         }
     }
 

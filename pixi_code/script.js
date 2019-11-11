@@ -123,29 +123,27 @@ var curveMover;
 
 function moveOnOrc() {
     if (firstFlag) {
+      // console.log(screenCenter)
         var screenCenterInverse = new Vector2(-screenCenter.x, -screenCenter.y);
         initialPosition.set(mapContainer.x, mapContainer.y);
         var controlPosition = directionAssembler.que[0].controlPosition;
         angle = Math.atan2(screenCenterInverse.y - controlPosition.y, screenCenterInverse.x - controlPosition.x);
+        angle = radToDeg(angle);
         radius = distanceBetween(screenCenterInverse, controlPosition);
-        var center = pointOnCircle(initialPosition, null , radius, angle);
+        // radius -= 5; // value by which the control points are moved from the tracks
+        var center = pointOnCircle(initialPosition, angle , radius);
+        // console.log("angle = "+angle);
         // console.log("radius = ", radius);
         // console.log("center = ", center);
         var curveTranslatorConfig = {
-            startingAngle: 180 + degToRad(angle),
+            startingAngle: 180+angle,
             clockwiseFlag: false,
             callback: function(ang) {
                 var pos = pointOnCircle(center, ang, radius);
                 manualPosition.x = pos.x;
                 manualPosition.y = pos.y;
-                // console.log("Angle = "+ang);
-                // pos.set(-pos.x, -pos.y)
-                // addLine(pos, pos)
-                // console.log("x = "+(Math.abs(pos.x) + Math.abs(center.x))+", y = "+(pos.y - center.y));
-                // console.log(pointOnCircle(pos, 180+ang, radius));
-
             },
-            step: 1
+            step: 5
         }
         curveMover = new curveTranslator(curveTranslatorConfig);
         velocity.set(0, 0);
