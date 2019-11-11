@@ -111,10 +111,17 @@ var curveTranslator = (function() {
 
     function _rotate() {
         this.angle += this.step;
-        if (Math.abs(this.angle) < 360) {
+        if (Math.abs(this.angle) < 360 && this.angle > 0) {
             this.callback(this.angle);
         } else {
-            this.angle = 0;
+        	if(this.clockwiseFlag)
+        	{
+            	this.angle = 0;
+        	}
+        	else
+        	{
+        		this.angle = 360;
+        	}
         }
     }
 
@@ -129,10 +136,10 @@ var curveTranslator = (function() {
     return translate
 })()
 
-function pointOnCircle(center, angle, radius) {
-    var rad = degToRad(angle);
+function pointOnCircle(center, degree, radius, radian) {
+	var angle = (typeof radian === 'number') ? radian : degToRad(degree);
     var coords = new Vector2();
-    coords.x = radius * Math.cos(rad) + center.x;
-    coords.y = radius * Math.sin(rad) + center.y;
+    coords.x = radius * Math.cos(angle) + center.x;
+    coords.y = radius * Math.sin(angle) + center.y;
     return coords;
 }

@@ -101,18 +101,18 @@ app.ticker.add(function(dt) {
     gameLoop(dt);
 })
 
-function getLine() {
-    let line = new Graphics();
+function addLine(start, end) {
+    let line = new PIXI.Graphics();
     line.lineStyle(4, 0xFFFFFF, 1);
-    line.moveTo(0, 0);
-    line.lineTo(80, 50);
-    line.x = 32;
-    line.y = 32;
-    app.stage.addChild(line);
-    return line;
+    line.moveTo(start.x, start.y);
+    line.lineTo(start.x+1, start.y+1);
+    // line.x = 32;
+    // line.y = 32;
+    mapContainer.addChild(line);
+    // return line;
 }
 
-var angle = 270
+var angle;
 var radius;
 var firstFlag = true;
 var manualOverride = false;
@@ -125,16 +125,24 @@ function moveOnOrc() {
     if (firstFlag) {
         var screenCenterInverse = new Vector2(-screenCenter.x, -screenCenter.y);
         initialPosition.set(mapContainer.x, mapContainer.y);
-        angle = radToDeg(Math.atan2(directionAssembler.que[0].controlPosition.y - screenCenter.y, directionAssembler.que[0].controlPosition.x - screenCenter.x));
-        radius = distanceBetween(screenCenterInverse, directionAssembler.que[0].controlPosition);
-        var center = pointOnCircle(initialPosition, angle, radius);
+        var controlPosition = directionAssembler.que[0].controlPosition;
+        angle = Math.atan2(screenCenterInverse.y - controlPosition.y, screenCenterInverse.x - controlPosition.x);
+        radius = distanceBetween(screenCenterInverse, controlPosition);
+        var center = pointOnCircle(initialPosition, null , radius, angle);
+        // console.log("radius = ", radius);
+        // console.log("center = ", center);
         var curveTranslatorConfig = {
-            startingAngle: 180+angle,
+            startingAngle: 180 + degToRad(angle),
             clockwiseFlag: false,
             callback: function(ang) {
                 var pos = pointOnCircle(center, ang, radius);
                 manualPosition.x = pos.x;
                 manualPosition.y = pos.y;
+                // console.log("Angle = "+ang);
+                // pos.set(-pos.x, -pos.y)
+                // addLine(pos, pos)
+                // console.log("x = "+(Math.abs(pos.x) + Math.abs(center.x))+", y = "+(pos.y - center.y));
+                // console.log(pointOnCircle(pos, 180+ang, radius));
 
             },
             step: 1
