@@ -174,7 +174,7 @@ var Assembler = (function() {
         switch (directionCodes[1]) {
             case 'l':
                 {
-                    controlPosition.x = maplingPosition.x + this.unitLength + distance;
+                    controlPosition.x = maplingPosition.x + this.mapling.length + distance;
                     break;
                 }
             case 'r':
@@ -184,7 +184,7 @@ var Assembler = (function() {
                 }
             case 'u':
                 {
-                    controlPosition.y = maplingPosition.y + this.unitLength + distance;
+                    controlPosition.y = maplingPosition.y + this.mapling.length + distance;
                     break;
                 }
             case 'd':

@@ -39,13 +39,26 @@ var Mapling = (function() {
     }
 
     function _init() {
-        var canvasConfig = {
+
+
+
+        var arcConfig = {
             height: this.length,
             width: this.length
         };
 
+        var pathConfig = {
+            height: this.length * 3,
+            width: this.length
+        }
+
+        var pathHConfig = {
+            width: this.length * 3,
+            height: this.length
+        }
+
         //left and down facing arc
-        this.arc = new Canvaz(canvasConfig);
+        this.arc = new Canvaz(arcConfig);
         this.arc.ctx.beginPath();
         this.arc.ctx.arc(0, this.length, this.length, degToRad(270), degToRad(360));
         this.arc.ctx.moveTo(0, 0);
@@ -56,9 +69,14 @@ var Mapling = (function() {
         this.arc.ctx.fill();
 
         // vertical path
-        this.path = new Canvaz(canvasConfig);
+        this.path = new Canvaz(pathConfig);
         this.path.ctx.fillStyle = "blue";
-        this.path.ctx.fillRect(0, 0, this.length, this.length);
+        this.path.ctx.fillRect(0, 0, this.length, this.length*3);
+
+
+        this.pathH = new Canvaz(pathHConfig);
+        this.pathH.ctx.fillStyle = "blue";
+        this.pathH.ctx.fillRect(0, 0, this.length*3, this.length);
 
         _createMaplings.call(this);
     }
@@ -82,8 +100,8 @@ var Mapling = (function() {
         var verticalFlag = (direction[0] === 'v')? true : false;
 
         var mainCanvasConfig = {
-            height: (verticalFlag)? 2*this.length : this.length,
-            width: (verticalFlag)? this.length : 2*this.length
+            height: (verticalFlag)? 4*this.length : this.length,
+            width: (verticalFlag)? this.length : 4*this.length
         }
         var mapling = new Canvaz(mainCanvasConfig); //a small map section / part
 
@@ -114,7 +132,7 @@ var Mapling = (function() {
                     mirrorImage(arcCopy.ctx, this.arc.canvas, true, false);
                 }
             } else {
-                arcStart.set(startX, this.length);
+                arcStart.set(startX, this.length *3);
                 pathStart.setX(startX);
 
                 if (leftFlag) {
@@ -130,7 +148,8 @@ var Mapling = (function() {
         }
         else
         {
-            pathCopy.ctx.rotate(degToRad(90));
+            var pathHCopy = this.pathH.getCopy();
+            mirrorImage(pathCopy.ctx, pathCopy.canvas, true, false);
             var leftFlag = (direction[1] === 'l') ? true : false; // arc goes left or right
             var upFlag = (direction[2] === 'u') ? true : false; // arc faces up or down
 
@@ -144,7 +163,7 @@ var Mapling = (function() {
                     mirrorImage(arcCopy.ctx, this.arc.canvas, true, false);
                 }
             } else {
-                arcStart.set(this.length, startY);
+                arcStart.set(this.length*3, startY);
                 pathStart.setY(startY);
 
                 if (upFlag) {
@@ -156,7 +175,7 @@ var Mapling = (function() {
                 }
             }
             mapling.ctx.drawImage(arcCopy.canvas, arcStart.x, arcStart.y);
-            mapling.ctx.drawImage(pathCopy.canvas, pathStart.x, pathStart.y);
+            mapling.ctx.drawImage(pathHCopy.canvas, pathStart.x, pathStart.y);
 
         }
         this.maps[dir2num[dir]] = mapling;
