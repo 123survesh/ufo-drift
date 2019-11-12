@@ -18,6 +18,15 @@ var Vector2 = (function() {
         this.y = y;
     }
 
+    function _invert() {
+        this.x *= -1;
+        this.y *= -1;
+    }
+
+    function _getCopy() {
+        return new vec2(this.x, this.y);
+    }
+
     vec2.prototype.set = function(x, y) {
         _set.call(this, x, y);
     };
@@ -29,6 +38,14 @@ var Vector2 = (function() {
     vec2.prototype.setY = function(y) {
         _setY.call(this, y);
     };
+
+    vec2.prototype.invert = function() {
+        _invert.call(this);
+    }
+
+    vec2.prototype.getCopy = function(){
+        return _getCopy.call(this);
+    }
 
     return vec2;
 })();
@@ -101,6 +118,7 @@ var curveTranslator = (function() {
 
     function _init(config) {
         this.angle = this.startingAngle = config.startingAngle;
+        this.rotatedBy = 0;
         this.clockwiseFlag = config.clockwiseFlag;
         this.callback = config.callback;
         this.stepValue = config.step || 1;
@@ -111,10 +129,11 @@ var curveTranslator = (function() {
 
     function _move() {
         this.angle += this.step;
+        this.rotatedBy += step;
         if (this.angle < 360) {
             this.callback(this.angle);
         } else {
-            	this.angle = 0;
+            this.angle = 0;
         }
     }
 
@@ -130,7 +149,7 @@ var curveTranslator = (function() {
 })()
 
 function pointOnCircle(center, degree, radius, radian) {
-	var angle = (typeof radian === 'number') ? radian : degToRad(degree);
+    var angle = (typeof radian === 'number') ? radian : degToRad(degree);
     var coords = new Vector2();
     coords.x = radius * Math.cos(angle) + center.x;
     coords.y = radius * Math.sin(angle) + center.y;

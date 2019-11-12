@@ -33,7 +33,7 @@ var Mapling = (function() {
 
     function map(config) {
         this.maps = {};
-        this.length = config.length;
+        this.length = config.length|| config.minLength;
 
         _init.call(this);
     }

@@ -18,35 +18,12 @@ var Assembler = (function() {
 
         this.controlPointDistance = 15;
 
-        // initializing the que with the first direction mapling
-        _calculateInitialPosition.call(this);
-        
         _calculatePosition.call(this);
         _populateContainer.call(this);
-
-    }
-
-    function _calculateInitialPosition()
-    {
-        var mapling = this.mapling.get(this.directions[0]);
-        var position = new Vector2();
-
-        this.unitLength = Math.abs(mapling.width - mapling.height);
-        this.directionCodes = this.directions[0].split("-"); // must always be a v-u-l or v-u-r
-
-        if (this.directionCodes[2] === 'l') {
-            position.setX(this.width - this.unitLength);
-        }
-
-        mapling.position = position;
-        mapling.controlPosition = _calculateControlPosition.call(this, position, mapling, this.directionCodes);
-        mapling.direction = this.directions[0];
-        mapling.index = 0;
-
-        this.que[this.queIndex] = mapling;
-
-        this.previousDirectionCodes = this.directionCodes;
-        this.queIndex++;
+        /*
+        ToDo:
+        write code to make the direction getting, container clearing and container populating
+         */
 
     }
 
@@ -59,17 +36,29 @@ var Assembler = (function() {
             var mapling = this.mapling.get(this.directions[i]);
             this.directionCodes = this.directions[i].split("-");
 
-            var prevMapling = this.que[this.queIndex - 1];
-            var prevCodes = this.previousDirectionCodes;
-            
-            
-            var position = _calculatePathPosition.call(this, mapling, prevMapling, prevCodes);
+            var position;
+            if (!i) { // first direction position
+                this.unitLength = Math.abs(mapling.width - mapling.height);
+
+                position = new Vector2();
+                if (this.directionCodes[2] === 'l') {
+                    position.setX(this.width - this.unitLength);
+                }
+            } else { 
+                var prevMapling = this.que[this.queIndex - 1];
+                var prevCodes = this.previousDirectionCodes;
+                position = _calculatePathPosition.call(this, mapling, prevMapling, prevCodes);
+
+            }
+
             var controlPosition = _calculateControlPosition.call(this, position, mapling, this.directionCodes);
-            
+
             mapling.position = position;
             mapling.controlPosition = controlPosition;
             mapling.direction = this.directions[i];
             mapling.index = i;
+
+            mapling.boundaryProps = _calculateBoundaryProps(this.directionCodes, mapling); // used by tracker
 
             this.que[this.queIndex] = mapling;
             this.queIndex++;
@@ -77,7 +66,7 @@ var Assembler = (function() {
         }
     }
 
-    function _circleSprite() {
+    function _circleSprite() { // used for control points
         var canvas = document.createElement('canvas');
         canvas.width = 10;
         canvas.height = 10;
@@ -87,7 +76,47 @@ var Assembler = (function() {
         ctx.stroke();
         ctx.fillStyle = "white";
         ctx.fill();
-        return canvasToSprite(canvas);
+        var circle = canvasToSprite(canvas);
+        circle.anchor.x = 0.5;
+        circle.anchor.y = 0.5;
+        return circle;
+    }
+
+    function _calculateBoundaryProps(direction, mapling)
+    {
+        var axis = (direction[0] === 'h') ? 'x' : 'y';
+        var condition = (direction[1] === 'u' || direction[1] === 'l') ? '>' : '<';
+        var boundary = new Vector2();
+        if(direction[0] === 'h')
+        {
+            if(direction[1] === 'l')
+            {
+                boundary.x = mapling.position.x;
+            }
+            else
+            {
+                boundary.x = mapling.width + mapling.position.x;
+            }
+            boundary.y = mapling.position.y;
+        }
+        else
+        {
+            if(direction[1] === 'u')
+            {
+                boundary.y = mapling.position.y;
+            }
+            else
+            {
+                boundary.y = mapling.height + mapling.position.y;
+            }
+            boundary.x = mapling.position.x;
+        }
+
+        return {
+            axis: axis,
+            condition: condition,
+            boundary: boundary // these coords are +ve, but the mapContainer coords will be negative. So must convert mapContainer values
+        }
     }
 
     function _calculatePathPosition(mapling, prevMapling, prevCodes) {
@@ -200,30 +229,30 @@ var Assembler = (function() {
         var i = this.assembleIndex;
         if (i < this.queIndex) {
 
-        	var mapling = this.que[i];
-        	var position = mapling.position;
-        	var controlPosition = mapling.controlPosition;
+            var mapling = this.que[i];
+            var position = mapling.position;
+            var controlPosition = mapling.controlPosition;
 
-        	var sprite = canvasToSprite(mapling.canvas);
+            var sprite = canvasToSprite(mapling.canvas);
             sprite.position.set(position.x, position.y);
 
             var controlPoint = _circleSprite();
             controlPoint.position.set(controlPosition.x, controlPosition.y);
 
             console.log("path - ", sprite.position);
-            console.log("control - ",controlPoint.position);
+            console.log("control - ", controlPoint.position);
 
 
             this.pathContainer.addChild(sprite);
             this.controlPointContainer.addChild(controlPoint);
 
-            this.que[i].sprite = {path: sprite, control: controlPoint};
+            this.que[i].sprite = { path: sprite, control: controlPoint };
 
             this.assembleIndex++;
         }
     }
 
-   
+
 
     function _addDirections(directions) {
 
