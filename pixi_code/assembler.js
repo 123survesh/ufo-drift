@@ -40,7 +40,9 @@ var Assembler = (function() {
 
         mapling.position = position;
         mapling.controlPosition = _calculateControlPosition.call(this, position, mapling, this.directionCodes);
-    
+        mapling.direction = this.directions[0];
+        mapling.index = 0;
+
         this.que[this.queIndex] = mapling;
 
         this.previousDirectionCodes = this.directionCodes;
@@ -66,7 +68,9 @@ var Assembler = (function() {
             
             mapling.position = position;
             mapling.controlPosition = controlPosition;
-            
+            mapling.direction = this.directions[i];
+            mapling.index = i;
+
             this.que[this.queIndex] = mapling;
             this.queIndex++;
             this.previousDirectionCodes = this.directionCodes;

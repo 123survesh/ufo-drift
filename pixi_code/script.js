@@ -18,6 +18,7 @@ var objectCotainer = new PIXI.Container();
 var mapContainer = new PIXI.Container();
 var pathContainer = new PIXI.Container();
 var controlPointContainer = new PIXI.Container();
+
 var assemblerConfig = {
     directions: ["v-u-l", "h-l-d", "v-d-r", "h-r-u"],
     height: 400,
@@ -105,7 +106,7 @@ function addLine(start, end) {
     let line = new PIXI.Graphics();
     line.lineStyle(4, 0xFFFFFF, 1);
     line.moveTo(start.x, start.y);
-    line.lineTo(start.x+1, start.y+1);
+    line.lineTo(start.x + 1, start.y + 1);
     // line.x = 32;
     // line.y = 32;
     mapContainer.addChild(line);
@@ -123,7 +124,7 @@ var curveMover;
 
 function moveOnOrc() {
     if (firstFlag) {
-      // console.log(screenCenter)
+        // console.log(screenCenter)
         var screenCenterInverse = new Vector2(-screenCenter.x, -screenCenter.y);
         initialPosition.set(mapContainer.x, mapContainer.y);
         var controlPosition = directionAssembler.que[0].controlPosition;
@@ -131,12 +132,12 @@ function moveOnOrc() {
         angle = radToDeg(angle);
         radius = distanceBetween(screenCenterInverse, controlPosition);
         // radius -= 5; // value by which the control points are moved from the tracks
-        var center = pointOnCircle(initialPosition, angle , radius);
+        var center = pointOnCircle(initialPosition, angle, radius);
         // console.log("angle = "+angle);
         // console.log("radius = ", radius);
         // console.log("center = ", center);
         var curveTranslatorConfig = {
-            startingAngle: 180+angle,
+            startingAngle: 180 + angle,
             clockwiseFlag: false,
             callback: function(ang) {
                 var pos = pointOnCircle(center, ang, radius);
@@ -150,7 +151,7 @@ function moveOnOrc() {
         manualOverride = true;
 
     }
-    curveMover.rotate();
+    curveMover.move();
 
 }
 
@@ -180,11 +181,7 @@ function createCrossHair() {
     cross.ctx.lineTo(150, 75);
     cross.ctx.strokeStyle = "red";
     cross.ctx.stroke();
-
-
     return canvasToSprite(cross.canvas);
-
-
 }
 
 function updateScreenCenter() {

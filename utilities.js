@@ -109,7 +109,7 @@ var curveTranslator = (function() {
         }
     }
 
-    function _rotate() {
+    function _move() {
         this.angle += this.step;
         if (this.angle < 360) {
             this.callback(this.angle);
@@ -118,8 +118,8 @@ var curveTranslator = (function() {
         }
     }
 
-    translate.prototype.rotate = function() {
-        _rotate.call(this);
+    translate.prototype.move = function() {
+        _move.call(this);
     }
 
     translate.prototype.reset = function() {
