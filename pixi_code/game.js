@@ -16,7 +16,7 @@ var Game = (function() {
     function _init() {
         this.mapContainer = new PIXI.Container();
         this.playerContainer = new PIXI.Container();
-        this.pathContainer = new PIXI.Container();
+        // this.pathContainer = new PIXI.Container();
         this.controlPointContainer = new PIXI.Container();
 
         this.playerContainer.addChild(this.player);
@@ -28,7 +28,7 @@ var Game = (function() {
             screenCenter: new Vector2(),
             flags: {
             },
-            step: 3,
+            stepValue: 1,
             curve: {},
             activeMapling: null,
             direction: null,
@@ -37,8 +37,10 @@ var Game = (function() {
             firstFlag: true, // firest move in a mapling / direction
             diagonalFlag: false, // must be reset on game restart
         }
-        this.props.screenCenter.set(this.screen.width / 2, this.screen.height / 2);
+        this.screen.wb2 = this.screen.width / 2;
+        this.screen.hb2 = this.screen.height / 2;
 
+        this.props.screenCenter.set(this.screen.wb2, this.screen.hb2);
 
         // create Mapling
         // create Assembler with Mapling and Directions
@@ -65,7 +67,22 @@ var Game = (function() {
         }
 
         this.assembler = new Assembler(this.configs.assembler);
+
+        this.mapContainer.addChild(this.controlPointContainer);
+        this.app.stage.addChild(this.mapContainer);
+        this.app.stage.addChild(this.playerContainer);
         _start.call(this);
+    }
+
+    function _updatePosition() {
+        this.mapContainer.x += this.props.velocity.x;
+        this.mapContainer.y += this.props.velocity.y;
+        if (this.props.manualOverride) {
+            this.mapContainer.x = this.props.manualPosition.x;
+            this.mapContainer.y = this.props.manualPosition.y;
+        }
+        this.props.screenCenter.x = this.mapContainer.x - this.screen.wb2;
+        this.props.screenCenter.y = this.mapContainer.y - this.screen.hb2;
     }
 
     function _gameLoop(dt) {
@@ -79,14 +96,23 @@ var Game = (function() {
         }
     }
 
+    function _play(dt)
+    {
+        _track.call(this);
+        _updatePosition.call(this);
+    }
+
     function _start() {
+        var _this = this;
         var firstMapling = this.assembler.que[0];
 
         // move the mapContainer to the starting position
-        this.props.manualPosition.x = 15 - firstMapling.position.x;
-        this.props.manualPosition.y = (firstMapling.position.y + firstMapling.height) - this.screen.height;
+        this.props.manualPosition.x = 25 - firstMapling.position.x;
+        this.props.manualPosition.y = this.screen.height - (firstMapling.position.y + firstMapling.height);
 
+        // this.props.manualPosition.invert();
         this.props.velocity.set(0, 0);
+        this.props.manualOverride = true;
         _updatePosition.call(this);
 
         this.props.activeMapling = this.assembler.que[0];
@@ -96,10 +122,11 @@ var Game = (function() {
         this.props.manualOverride = false;
         this.props.collision = false;
 
-        this.state = _track.bind(this);
+        this.state = _play.bind(this);
+        _setEventListeners.call(this);
 
         this.app.ticker.add(function(dt) {
-            _gameLoop.call(this, dt);
+            _gameLoop.call(_this, dt);
         });
 
         // add the tracker to ticker list
@@ -114,21 +141,22 @@ var Game = (function() {
             x: false,
             y: false
         };
+        var boundary = boundaryProps.boundary;
         if (boundaryProps.condition === '>') {
             //converting screenCemter coords to +ve and compare with boundaryProps
-            if ((-this.props.screenCenter.x) < boundaryProps.x) {
+            if ((-this.props.screenCenter.x) < boundary.x) {
                 report.x = true;
             }
-            if ((-this.props.screenCenter.y) < boundaryProps.y) {
+            if ((-this.props.screenCenter.y) < boundary.y) {
                 report.y = true;
             }
 
 
         } else {
-            if ((-this.props.screenCenter.x) > boundaryProps.x) {
+            if ((-this.props.screenCenter.x) > boundary.x) {
                 report.x = true;
             }
-            if ((-this.props.screenCenter.y) > boundaryProps.y) {
+            if ((-this.props.screenCenter.y) > boundary.y) {
                 report.x = true;
             }
         }
@@ -164,15 +192,15 @@ var Game = (function() {
 
          */
 
-        var collisionReport = _checkCollision.call(this, this.activeMapling.boundaryProps);
-        var axis = this.activeMapling.boundaryProps.axis;
+        var collisionReport = _checkCollision.call(this, this.props.activeMapling.boundaryProps);
+        var axis = this.props.activeMapling.boundaryProps.axis;
 
         if (this.props.spaceFlag) {
             if (collisionReport.x || collisionReport.y) // collision occured
             {
                 if (!collisionReport[axis]) // if the collision is not in the current axis check the next mapling, it could just be a transfer of maplings
                 {
-                    var index = this.activeMapling.index;
+                    var index = this.props.activeMapling.index;
                     if (index + 1 < this.assembler.que.length) {
                         index++;
                     } else {
@@ -201,7 +229,7 @@ var Game = (function() {
         } else {
             // regular path movement
             if (collisionReport[axis]) {
-                var index = this.activeMapling.index;
+                var index = this.props.activeMapling.index;
                 if (index + 1 < this.assembler.que.length) {
                     index++;
                 } else {
@@ -245,11 +273,11 @@ var Game = (function() {
             onRelease: _onRelease.bind(this)
         }
 
-        document.addEventListener('mousedown', this.eventListeners.onPress);
+        // document.addEventListener('mousedown', this.eventListeners.onPress);
         document.addEventListener('touchstart', this.eventListeners.onPress);
         document.addEventListener('keydown', this.eventListeners.onPress);
 
-        document.addEventListener('mouseup', this.eventListeners.onRelease);
+        // document.addEventListener('mouseup', this.eventListeners.onRelease);
         document.addEventListener('touchend', this.eventListeners.onRelease);
         document.addEventListener('keyup', this.eventListeners.onRelease);
     }
@@ -269,20 +297,24 @@ var Game = (function() {
 
     function _onRelease(event)
     {
-        this.props.spaceFlag = false;
-        var curveProps = this.props.curve;
-        var roatedBy = curveProps.mover.rotatedBy;
-        if(rotatedBy < 45 || rotatedBy > 135)
+        if(this.props.spaceFlag)
         {
-             
-            var pos = pointOnCircle(curveProps.center, curveProps.angle, curveProps.radius);
-            this.props.velocity.x = pos.x - this.manualPosition.x;
-            this.props.velocity.y = pos.y - this.manualPosition.y;
-            this.props.diagonalFlag = true;
-        }
-        else if(rotatedBy > 90)
-        {
-            this.props.firstFlag = true;
+            this.props.spaceFlag = false;
+            this.props.manualOverride = false;
+            var curveProps = this.props.curve;
+            var rotatedBy = Math.abs(curveProps.mover.rotatedBy);
+            if(rotatedBy < 45 || rotatedBy > 135)
+            {
+                 
+                var pos = pointOnCircle(curveProps.center, curveProps.angle, curveProps.radius);
+                this.props.velocity.x = pos.x - this.manualPosition.x;
+                this.props.velocity.y = pos.y - this.manualPosition.y;
+                this.props.diagonalFlag = true;
+            }
+            else
+            {
+                this.props.firstFlag = true;
+            }
         }
     }
 
@@ -291,7 +323,7 @@ var Game = (function() {
             if (!this.props.spaceFlag) {
                 var currentAxis = (this.props.direction[0] === 'v') ? 'y' : 'x';
                 this.props.step = this.props.stepValue;
-                if (this.props.direction[1] === 'u' || this.props.direction[1] === 'r') {
+                if (this.props.direction[1] === 'd' || this.props.direction[1] === 'r') {
                     this.props.step *= -1;
                 }
                 this.props.firstFlag = false;
@@ -320,7 +352,7 @@ var Game = (function() {
 
                             _this.props.curve.angle = ang;
                         },
-                        step: 5
+                        step: 1
                     }
                     curveMover = new curveTranslator(curveTranslatorConfig);
 
