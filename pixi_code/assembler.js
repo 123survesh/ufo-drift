@@ -85,31 +85,35 @@ var Assembler = (function() {
     function _calculateBoundaryProps(direction, mapling)
     {
         var axis = (direction[0] === 'h') ? 'x' : 'y';
-        var condition = (direction[1] === 'u' || direction[1] === 'l') ? '>' : '<';
+        var condition = {
+         x: (direction[1] === 'u' || direction[1] === 'l') ? '>' : '<',
+         y: (direction[2] === 'u' || direction[2] === 'l') ? '>' : '<'
+        }
         var boundary = new Vector2();
+        boundary.x = mapling.position.x;
+        boundary.y = mapling.position.y;
         if(direction[0] === 'h')
         {
-            if(direction[1] === 'l')
+            if(direction[1] === 'r')
             {
-                boundary.x = mapling.position.x;
+                boundary.x += mapling.width;
             }
-            else
+            
+            if(direction[2] === 'd')
             {
-                boundary.x = mapling.width + mapling.position.x;
+                boundary.y += mapling.height;
             }
-            boundary.y = mapling.position.y;
         }
         else
         {
-            if(direction[1] === 'u')
+            if(direction[1] === 'd')
             {
-                boundary.y = mapling.position.y;
+                boundary.y += mapling.height;
             }
-            else
+            if(direction[2] === 'r')
             {
-                boundary.y = mapling.height + mapling.position.y;
+                boundary.x += mapling.width;   
             }
-            boundary.x = mapling.position.x;
         }
 
         return {

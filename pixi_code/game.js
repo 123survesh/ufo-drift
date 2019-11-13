@@ -93,6 +93,7 @@ var Game = (function() {
         else
         {
             console.log("game over 8_8");
+            this.app.ticker.stop();
         }
     }
 
@@ -142,24 +143,34 @@ var Game = (function() {
             y: false
         };
         var boundary = boundaryProps.boundary;
-        if (boundaryProps.condition === '>') {
-            //converting screenCemter coords to +ve and compare with boundaryProps
+        //converting screenCemter coords to +ve and compare with boundaryProps
+
+        if(boundaryProps.condition.x === '>')
+        {
             if ((-this.props.screenCenter.x) < boundary.x) {
                 report.x = true;
             }
-            if ((-this.props.screenCenter.y) < boundary.y) {
-                report.y = true;
-            }
-
-
-        } else {
+        }
+        else
+        {
             if ((-this.props.screenCenter.x) > boundary.x) {
                 report.x = true;
             }
-            if ((-this.props.screenCenter.y) > boundary.y) {
-                report.x = true;
+        }
+
+        if(boundaryProps.condition.y === '>')
+        {
+            if ((-this.props.screenCenter.y) < boundary.y) {
+                report.y = true;
             }
         }
+        else
+        {
+            if ((-this.props.screenCenter.y) > boundary.y) {
+                report.y = true;
+            }
+        }        
+
         return report;
     }
 
