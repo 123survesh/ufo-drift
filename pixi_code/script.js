@@ -1,6 +1,6 @@
 var appConfig = {
     width: 150,
-    height: 150,
+    height: 400,
     antialias: true,
     transparent: false,
     resolution: 1

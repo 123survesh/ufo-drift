@@ -26,9 +26,8 @@ var Game = (function() {
             velocity: new Vector2(),
             manualPosition: new Vector2(),
             screenCenter: new Vector2(),
-            flags: {
-            },
-            stepValue: 1,
+            flags: {},
+            stepValue: 3,
             curve: {},
             activeMapling: null,
             direction: null,
@@ -38,7 +37,8 @@ var Game = (function() {
             diagonalFlag: false, // must be reset on game restart
         }
         this.screen.wb2 = this.screen.width / 2;
-        this.screen.hb2 = this.screen.height / 2;
+        this.screen.hb2 = (this.screen.height - this.screen.width) + this.screen.wb2;
+        this.player.position.y = this.screen.height - this.screen.width;
 
         this.props.screenCenter.set(this.screen.wb2, this.screen.hb2);
 
@@ -86,19 +86,15 @@ var Game = (function() {
     }
 
     function _gameLoop(dt) {
-        if(!this.props.collision)
-        {
+        if (!this.props.collision) {
             this.state(dt);
-        }
-        else
-        {
+        } else {
             console.log("game over 8_8");
             this.app.ticker.stop();
         }
     }
 
-    function _play(dt)
-    {
+    function _play(dt) {
         _track.call(this);
         _updatePosition.call(this);
     }
@@ -145,31 +141,25 @@ var Game = (function() {
         var boundary = boundaryProps.boundary;
         //converting screenCemter coords to +ve and compare with boundaryProps
 
-        if(boundaryProps.condition.x === '>')
-        {
+        if (boundaryProps.condition.x === '>') {
             if ((-this.props.screenCenter.x) < boundary.x) {
                 report.x = true;
             }
-        }
-        else
-        {
+        } else {
             if ((-this.props.screenCenter.x) > boundary.x) {
                 report.x = true;
             }
         }
 
-        if(boundaryProps.condition.y === '>')
-        {
+        if (boundaryProps.condition.y === '>') {
             if ((-this.props.screenCenter.y) < boundary.y) {
                 report.y = true;
             }
-        }
-        else
-        {
+        } else {
             if ((-this.props.screenCenter.y) > boundary.y) {
                 report.y = true;
             }
-        }        
+        }
 
         return report;
     }
@@ -211,21 +201,13 @@ var Game = (function() {
             {
                 if (!collisionReport[axis]) // if the collision is not in the current axis check the next mapling, it could just be a transfer of maplings
                 {
-                    var index = this.props.activeMapling.index;
-                    if (index + 1 < this.assembler.que.length) {
-                        index++;
-                    } else {
-                        index = 0;
-                    }
-                    var nextMapling = this.assembler.que[index];
+                    var nextMapling = _getNextMapling.call(this);
                     collisionReport = _checkCollision.call(this, nextMapling.boundaryProps);
                     if (collisionReport.x || collisionReport.y) {
                         // collision occured stop moving
                         this.props.collision = true;
                     } else { // move to next mapling
-                        this.props.activeMapling = nextMapling;
-                        this.props.direction = nextMapling.direction.split("-");
-                        this.props.nextFlag = true;
+                        _moveToNextMapling.call(this);
                         _move.call(this); // must set this.props.firstFlag = true on space release
 
                     }
@@ -240,18 +222,11 @@ var Game = (function() {
         } else {
             // regular path movement
             if (collisionReport[axis]) {
-                var index = this.props.activeMapling.index;
-                if (index + 1 < this.assembler.que.length) {
-                    index++;
-                } else {
-                    index = 0;
-                }
-                var nextMapling = this.assembler.que[index];
+                var nextMapling = _getNextMapling.call(this);
                 var nextDirection = nextMapling.direction.split("-");
                 if (nextDirection[0] === this.props.direction[0]) // moved on to next platform
                 {
                     this.props.firstFlag = true;
-                    this.props.nextFlag = true;
                     _move.call(this);
                 } else {
                     // collision occurred stop moving
@@ -261,6 +236,23 @@ var Game = (function() {
                 _move.call(this);
             }
         }
+    }
+
+    function _getNextMapling() {
+        var index = this.props.activeMapling.index;
+        if (index + 1 < this.assembler.que.length) {
+            index++;
+        } else {
+            index = 0;
+        }
+        return this.assembler.que[index];
+    }
+
+    function _moveToNextMapling() {
+        var nextMapling = _getNextMapling.call(this);
+        this.props.activeMapling = nextMapling;
+        this.props.direction = nextMapling.direction.split("-");
+        this.props.nextFlag = true;
     }
 
 
@@ -276,11 +268,10 @@ var Game = (function() {
             -> else set diagonal flag true 
 
      */
-    
-    function _setEventListeners()
-    {
+
+    function _setEventListeners() {
         this.eventListeners = {
-            onPress : _onPress.bind(this),
+            onPress: _onPress.bind(this),
             onRelease: _onRelease.bind(this)
         }
 
@@ -292,13 +283,11 @@ var Game = (function() {
         document.addEventListener('touchend', this.eventListeners.onRelease);
         document.addEventListener('keyup', this.eventListeners.onRelease);
     }
-    function _onPress(event)
-    {
-        if(event.keyCode === 32)
-        {
 
-            if(!this.props.spaceFlag)
-            {
+    function _onPress(event) {
+        if (event.keyCode === 32) {
+
+            if (!this.props.spaceFlag) {
                 this.props.spaceFlag = true;
                 this.props.firstFlag = true;
             }
@@ -306,25 +295,19 @@ var Game = (function() {
         }
     }
 
-    function _onRelease(event)
-    {
-        if(this.props.spaceFlag)
-        {
+    function _onRelease(event) {
+        if (this.props.spaceFlag) {
             this.props.spaceFlag = false;
             this.props.manualOverride = false;
             var curveProps = this.props.curve;
             var rotatedBy = Math.abs(curveProps.mover.rotatedBy);
-            if(rotatedBy < 45 || rotatedBy > 135)
-            {
-                 
-                var pos = pointOnCircle(curveProps.center, curveProps.angle, curveProps.radius);
-                this.props.velocity.x = pos.x - this.manualPosition.x;
-                this.props.velocity.y = pos.y - this.manualPosition.y;
-                this.props.diagonalFlag = true;
+            this.props.firstFlag = true;
+            if (rotatedBy > 60 && !this.props.nextFlag) {
+                _moveToNextMapling.call(this);
             }
-            else
+            if(this.nextFlag)
             {
-                this.props.firstFlag = true;
+                this.nextFlag = false;
             }
         }
     }
@@ -349,8 +332,7 @@ var Game = (function() {
                 var angle = Math.atan2(screenCenterInverse.y - controlPosition.y, screenCenterInverse.x - controlPosition.x); // in radian
                 angle = radToDeg(angle); // convert to angle
                 var radius = distanceBetween(screenCenterInverse, controlPosition);
-                if(radius <= this.configs.mapling.minLength)
-                {
+                if (radius <= this.configs.mapling.minLength) {
                     var center = pointOnCircle(initialPosition, angle, radius); // center of the circle that the mapContainer moves in
 
                     var curveTranslatorConfig = {
@@ -363,7 +345,7 @@ var Game = (function() {
 
                             _this.props.curve.angle = ang;
                         },
-                        step: 1
+                        step: this.stepValue
                     }
                     curveMover = new curveTranslator(curveTranslatorConfig);
 
@@ -381,11 +363,9 @@ var Game = (function() {
             }
 
             this.props.velocity.set(0, 0);
-            this.props.nextFlag = false;
         }
 
-        if(!this.props.diagonalFlag)
-        {
+        if (!this.props.diagonalFlag) {
             if (!this.props.spaceFlag) {
                 this.props.velocity[currentAxis] = this.props.step;
             } else {

@@ -2,13 +2,17 @@ var maplings = new Mapling({
     length: 100
 });
 
-let app = new PIXI.Application({
+var screenConf = {
     width: 150,
-    height: 150,
+    height: 450,
+    wb2: 150 / 2,
+    hb2: (450 - 150) + (150/2),
     antialias: true,
     transparent: false,
     resolution: 1
-});
+}
+
+let app = new PIXI.Application();
 
 //Add the canvas that Pixi automatically created for you to the HTML document
 var target = document.getElementById('target');
@@ -93,7 +97,7 @@ var velocity = new Vector2();
 var manualPosition = new Vector2()
 var initialPosition = new Vector2();
 var screenCenter = new Vector2();
-screenCenter.set(app.view.width / 2, app.view.height / 2);
+screenCenter.set(screenConf.wb2, screenConf.hb2);
 
 
 var state = play;
@@ -185,6 +189,6 @@ function createCrossHair() {
 }
 
 function updateScreenCenter() {
-    screenCenter.x = mapContainer.x - 75;
-    screenCenter.y = mapContainer.y - 75;
+    screenCenter.x = mapContainer.x - (screenConf.wb2);
+    screenCenter.y = mapContainer.y - (screenConf.hb2);
 }
