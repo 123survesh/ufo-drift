@@ -1,14 +1,14 @@
 var maplings = new Mapling({
     minLength: 100,
-                maxLength: 300,
-                maxPaths: 3,
+    maxLength: 300,
+    maxPaths: 3,
 });
 
 var screenConf = {
     width: 150,
     height: 450,
     wb2: 150 / 2,
-    hb2: (450 - 150) + (150/2),
+    hb2: (450 - 150) + (150 / 2),
     antialias: true,
     transparent: false,
     resolution: 1
@@ -26,9 +26,9 @@ var pathContainer = new PIXI.Container();
 var controlPointContainer = new PIXI.Container();
 
 var assemblerConfig = {
-    directions: ["v-u-l", "h-l-d", "v-d-r", "h-r-u"],
-    height: 400,
-    width: 400,
+    directions: ["v-u-l"],
+    height: 1200,
+    width: 1200,
     mapling: maplings,
     container: mapContainer,
     controlPointContainer: controlPointContainer

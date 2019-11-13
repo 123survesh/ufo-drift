@@ -27,7 +27,7 @@ var Game = (function() {
             manualPosition: new Vector2(),
             screenCenter: new Vector2(),
             flags: {},
-            stepValue: 3,
+            stepValue: 2,
             curve: {},
             activeMapling: null,
             direction: null,
@@ -104,7 +104,7 @@ var Game = (function() {
         var firstMapling = this.assembler.getMapling(0);
 
         // move the mapContainer to the starting position
-        this.props.manualPosition.x = ((this.screen.width - firstMapling.width)/2) - firstMapling.position.x;
+        this.props.manualPosition.x = ((this.screen.width - firstMapling.width) / 2) - firstMapling.position.x;
         this.props.manualPosition.y = this.screen.height - (firstMapling.position.y + firstMapling.height);
 
         // this.props.manualPosition.invert();
@@ -139,26 +139,15 @@ var Game = (function() {
             y: false
         };
         var boundary = boundaryProps.boundary;
+        var screenCenter = this.props.screenCenter;
         //converting screenCemter coords to +ve and compare with boundaryProps
 
-        if (boundaryProps.condition.x === '>') {
-            if ((-this.props.screenCenter.x) < boundary.x) {
-                report.x = true;
-            }
-        } else {
-            if ((-this.props.screenCenter.x) > boundary.x) {
-                report.x = true;
-            }
+        if ((-screenCenter.x) < boundary.x.min || (-screenCenter.x) > boundary.x.max) {
+            report.x = true;
         }
 
-        if (boundaryProps.condition.y === '>') {
-            if ((-this.props.screenCenter.y) < boundary.y) {
-                report.y = true;
-            }
-        } else {
-            if ((-this.props.screenCenter.y) > boundary.y) {
-                report.y = true;
-            }
+        if ((-screenCenter.y) < boundary.y.min || (-screenCenter.y) > boundary.y.max) {
+            report.y = true;
         }
 
         return report;
@@ -199,22 +188,15 @@ var Game = (function() {
         if (this.props.spaceFlag) {
             if (collisionReport.x || collisionReport.y) // collision occured
             {
-                if (!collisionReport[axis]) // if the collision is not in the current axis check the next mapling, it could just be a transfer of maplings
-                {
-                    var nextMapling = _getNextMapling.call(this);
-                    collisionReport = _checkCollision.call(this, nextMapling.boundaryProps);
-                    if (collisionReport.x || collisionReport.y) {
-                        // collision occured stop moving
-                        this.props.collision = true;
-                    } else { // move to next mapling
-                        _moveToNextMapling.call(this);
-                        _move.call(this); // must set this.props.firstFlag = true on space release
-
-                    }
-
-                } else {
+                var nextMapling = _getNextMapling.call(this);
+                collisionReport = _checkCollision.call(this, nextMapling.boundaryProps);
+                if (collisionReport.x || collisionReport.y) {
                     // collision occured stop moving
                     this.props.collision = true;
+                } else { // move to next mapling
+                    _moveToNextMapling.call(this);
+                    _move.call(this); // must set this.props.firstFlag = true on space release
+
                 }
             } else {
                 _move.call(this);
@@ -284,8 +266,7 @@ var Game = (function() {
             if (!this.props.spaceFlag) {
                 var screenCenterInverse = new Vector2(-this.props.screenCenter.x, -this.props.screenCenter.y);
                 var radius = distanceBetween(screenCenterInverse, this.props.activeMapling.controlPosition);
-                if (radius <= this.configs.mapling.minLength - 10)
-                {
+                if (radius <= this.configs.mapling.minLength - 10) {
                     this.props.spaceFlag = true;
                     this.props.firstFlag = true;
                 }
@@ -304,8 +285,7 @@ var Game = (function() {
             if (rotatedBy > 60 && !this.props.nextFlag) {
                 _moveToNextMapling.call(this);
             }
-            if(this.nextFlag)
-            {
+            if (this.nextFlag) {
                 this.nextFlag = false;
             }
         }
@@ -322,7 +302,8 @@ var Game = (function() {
                 this.props.firstFlag = false;
             } else {
                 var _this = this;
-
+                var dir = this.props.activeMapling.direction;
+                var clockwiseFlag = (dir == 'v-u-r' || dir == 'v-d-l' || dir == 'h-r-d' || dir == 'h-l-u') ? true : false;
                 var mapling = this.props.activeMapling;
                 var screenCenterInverse = new Vector2(-this.props.screenCenter.x, -this.props.screenCenter.y);
                 var initialPosition = new Vector2(this.mapContainer.x, this.mapContainer.y);
@@ -330,35 +311,35 @@ var Game = (function() {
 
                 var angle = Math.atan2(screenCenterInverse.y - controlPosition.y, screenCenterInverse.x - controlPosition.x); // in radian
                 angle = radToDeg(angle); // convert to angle
+                var startingAngle = 180+angle; 
                 var radius = distanceBetween(screenCenterInverse, controlPosition);
-                if (radius <= this.configs.mapling.minLength - 10) {
-                    var center = pointOnCircle(initialPosition, angle, radius); // center of the circle that the mapContainer moves in
+                var center = pointOnCircle(initialPosition, angle, radius); // center of the circle that the mapContainer moves in
 
-                    var curveTranslatorConfig = {
-                        startingAngle: 180 + angle,
-                        clockwiseFlag: false,
-                        callback: function(ang) {
-                            var pos = pointOnCircle(center, ang, radius);
-                            _this.props.manualPosition.x = pos.x;
-                            _this.props.manualPosition.y = pos.y;
+                var curveTranslatorConfig = {
+                    startingAngle: startingAngle,
+                    clockwiseFlag: clockwiseFlag,
+                    callback: function(ang) {
+                        var pos = pointOnCircle(center, ang, radius);
+                        _this.props.manualPosition.x = pos.x;
+                        _this.props.manualPosition.y = pos.y;
 
-                            _this.props.curve.angle = ang;
-                        },
-                        step: this.stepValue
-                    }
-                    curveMover = new curveTranslator(curveTranslatorConfig);
-
-                    this.props.curve = {
-                        angle: angle,
-                        radius: radius,
-                        center: center,
-                        mover: curveMover
-                    }
-
-                    this.props.manualOverride = true; // starts setting the position of the mapContainer directly
-                    this.props.firstFlag = false;
-
+                        _this.props.curve.angle = ang;
+                    },
+                    step: this.props.stepValue
                 }
+                curveMover = new curveTranslator(curveTranslatorConfig);
+
+                this.props.curve = {
+                    angle: angle,
+                    radius: radius,
+                    center: center,
+                    mover: curveMover
+                }
+
+                this.props.manualOverride = true; // starts setting the position of the mapContainer directly
+                this.props.firstFlag = false;
+
+
             }
 
             this.props.velocity.set(0, 0);

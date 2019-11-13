@@ -32,7 +32,7 @@ var Assembler = (function() {
         this.controlPointDistance = 15;
         
         var firstDirection = this.directions[0];
-        _calculatePosition.call(this);
+        _calculatePosition.call(this, true);
 
 
         var mapperConfig = {
@@ -42,7 +42,7 @@ var Assembler = (function() {
         }
         this.mapper = new Mapper(mapperConfig);
 
-        Array.prototype.push.apply(this.que, this.mapper.set);
+        Array.prototype.push.apply(this.directions, this.mapper.set);
 
         _calculatePosition.call(this);
         _populateContainer.call(this);
@@ -54,11 +54,18 @@ var Assembler = (function() {
     }
 
     // dumb position calculator
-    function _calculatePosition() {
-        var firstFlag = true;
+    function _calculatePosition(firstFlag) {
         while (this.directions.length) {
             var direction = this.directions.shift(); // pops the first element out / FIFO
-            var mapling = this.mapling.get(direction);
+            var mapling;
+            if(firstFlag)
+            {
+                mapling = this.mapling.get(direction, 3);
+            }
+            else
+            {
+                mapling = this.mapling.get(direction);                
+            }
             this.directionCodes = direction.split("-");
 
             var position;
@@ -72,6 +79,10 @@ var Assembler = (function() {
                 }
             } else {
                 var prevMapling = this.que[this.que.length - 1];
+                if(!prevMapling)
+                {
+                    prevMapling = this.populated[this.counter -1];
+                }
                 var prevCodes = this.previousDirectionCodes;
                 position = _calculatePathPosition.call(this, mapling, prevMapling, prevCodes);
 
@@ -114,22 +125,14 @@ var Assembler = (function() {
             y: (direction[2] === 'u' || direction[2] === 'l') ? '>' : '<'
         }
         var boundary = new Vector2();
-        boundary.x = mapling.position.x;
-        boundary.y = mapling.position.y;
-        if (direction[0] === 'h') {
-            if (direction[1] === 'r') {
-                boundary.x += mapling.width;
-            }
-
-            if (direction[2] === 'd') {
-                boundary.y += mapling.height;
-            }
-        } else {
-            if (direction[1] === 'd') {
-                boundary.y += mapling.height;
-            }
-            if (direction[2] === 'r') {
-                boundary.x += mapling.width;
+        boundary = {
+            x: {
+                min: mapling.position.x,
+                max: mapling.position.x + mapling.width
+            },
+            y: {
+                min: mapling.position.y,
+                max: mapling.position.y + mapling.height
             }
         }
 
@@ -151,7 +154,7 @@ var Assembler = (function() {
                 }
             case 'r':
                 {
-                    position.x = prevPosition.x + prevMapling.width;
+                    position.x = prevPosition.x + prevMapling.width - prevMapling.height;
                     break;
                 }
             case 'u':
@@ -161,7 +164,7 @@ var Assembler = (function() {
                 }
             case 'd':
                 {
-                    position.y = prevPosition.y + this.unitLength;
+                    position.y = prevPosition.y + prevMapling.height - prevMapling.width;
                 }
         }
 
@@ -192,6 +195,7 @@ var Assembler = (function() {
     function _calculateControlPosition(maplingPosition, mapling, directionCodes, distance) {
         var controlPosition = new Vector2();
         var distance = this.controlPointDistance;
+        var unitLength = Math.abs(mapling.width - mapling.height);
         switch (directionCodes[1]) {
             case 'l':
                 {
@@ -200,7 +204,7 @@ var Assembler = (function() {
                 }
             case 'r':
                 {
-                    controlPosition.x = maplingPosition.x + this.unitLength - distance;
+                    controlPosition.x = maplingPosition.x + unitLength - distance;
                     break;
                 }
             case 'u':
@@ -210,7 +214,7 @@ var Assembler = (function() {
                 }
             case 'd':
                 {
-                    controlPosition.y = maplingPosition.y + this.unitLength - distance;
+                    controlPosition.y = maplingPosition.y + unitLength - distance;
                 }
         }
 
@@ -256,8 +260,8 @@ var Assembler = (function() {
         var controlPoint = _circleSprite();
         controlPoint.position.set(controlPosition.x, controlPosition.y);
 
-        console.log("path - ", path.position);
-        console.log("control - ", controlPoint.position);
+        // console.log("path - ", path.position);
+        // console.log("control - ", controlPoint.position);
 
 
         this.pathContainer.addChild(path);
@@ -283,7 +287,7 @@ var Assembler = (function() {
             this.popped.push(this.populated[id]);
             delete this.populated[id];
             _cleanPopped.call(this);
-            if(this.populated.length < (this.mapper.setSize / 2))
+            if(Object.keys(this.populated).length < (this.mapper.setSize / 2))
             {
                 _addDirections.call(this);
             }

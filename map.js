@@ -91,9 +91,9 @@ var Mapling = (function() {
         }
     }
 
-    function _createMapling(direction) {
+    function _createMapling(direction, pathCount) {
         var dir = direction;
-        var pathCount = Math.ceil(this.maxPaths * Math.random());
+        pathCount = (pathCount > -1)? pathCount : Math.ceil(this.maxPaths * Math.random());
         var maxCount = pathCount + 1; // path count can be 1, 2 .. maxPaths and arc count is always 1
         direction = direction.split("-");
         var arcStart = new Vector2(); // init to (0,0)
@@ -184,18 +184,18 @@ var Mapling = (function() {
         this.maps[dir2num[dir]] = mapling;
     }
 
-    function _get(direction) {
+    function _get(direction, pathCount) {
         var toss = (Math.floor(2*Math.random()));
-        if(toss) // if toss is won get a new mapling (new maplings have random path size)
+        if(toss || (pathCount > -1)) // if toss is won get a new mapling (new maplings have random path size)
         {
-            _createMapling.call(this, direction);
+            _createMapling.call(this, direction, pathCount);
         }
 
         return this.maps[dir2num[direction]].getCopy();
     }
 
-    map.prototype.get = function(direction) {
-        return _get.call(this, direction);
+    map.prototype.get = function(direction, pathCount) {
+        return _get.call(this, direction, pathCount);
     }
 
     return map;

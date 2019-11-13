@@ -125,6 +125,10 @@ var curveTranslator = (function() {
         if (!this.clockwiseFlag) {
             this.step = this.stepValue * -1;
         }
+        else
+        {
+            this.step = this.stepValue;
+        }
     }
 
     function _move() {
