@@ -9,9 +9,10 @@ function createCrossHair() {
     cross.ctx.stroke();
 
 
-    return canvasToSprite(cross.canvas);
-
-
+    var sprite = canvasToSprite(cross.canvas);
+    sprite.anchor.x = 0.5;
+    sprite.anchor.y = 0.5;
+    return sprite;
 }
 
 function addLine(start, end) {

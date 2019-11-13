@@ -36,9 +36,10 @@ var Game = (function() {
             firstFlag: true, // firest move in a mapling / direction
             diagonalFlag: false, // must be reset on game restart
         }
-        this.screen.wb2 = this.screen.width / 2;
-        this.screen.hb2 = (this.screen.height - this.screen.width) + this.screen.wb2;
-        this.player.position.y = this.screen.height - this.screen.width;
+        this.screen.wb2 = this.screen.width /2;
+        this.screen.hb2 = this.screen.height - (this.player.height/2);
+        this.player.position.y = this.screen.hb2;
+        this.player.position.x = this.screen.wb2;
 
         this.props.screenCenter.set(this.screen.wb2, this.screen.hb2);
 
@@ -48,8 +49,8 @@ var Game = (function() {
         // start the mover
         this.configs = {
             "mapling": {
-                minLength: 100,
-                maxLength: 400,
+                minLength: this.screen.width/2,
+                maxLength: (this.screen.width/2) * 4,
                 maxPaths: 3,
             }
         }
@@ -246,13 +247,14 @@ var Game = (function() {
      */
 
     function _setEventListeners() {
+        var _this = this;
         this.eventListeners = {
             onPress: _onPress.bind(this),
             onRelease: _onRelease.bind(this)
         }
 
         // document.addEventListener('mousedown', this.eventListeners.onPress);
-        document.addEventListener('touchstart', this.eventListeners.onPress);
+        document.addEventListener('touchstart', function(e){_this.props.touchFlag = true;_this.eventListeners.onPress(e);});
         document.addEventListener('keydown', this.eventListeners.onPress);
 
         // document.addEventListener('mouseup', this.eventListeners.onRelease);
@@ -261,7 +263,7 @@ var Game = (function() {
     }
 
     function _onPress(event) {
-        if (event.keyCode === 32) {
+        if (event.keyCode === 32 || this.props.touchFlag) {
 
             if (!this.props.spaceFlag) {
                 var screenCenterInverse = new Vector2(-this.props.screenCenter.x, -this.props.screenCenter.y);
@@ -271,12 +273,17 @@ var Game = (function() {
                     this.props.firstFlag = true;
                 }
             }
+            else
+            {
+                console.log();
+            }
 
         }
     }
 
     function _onRelease(event) {
         if (this.props.spaceFlag) {
+            this.props.touchFlag = false;
             this.props.spaceFlag = false;
             this.props.manualOverride = false;
             var curveProps = this.props.curve;

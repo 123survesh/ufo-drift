@@ -1,5 +1,5 @@
 var appConfig = {
-    width: 150,
+    width: 300,
     height: 400,
     antialias: true,
     transparent: false,
@@ -18,3 +18,10 @@ var gameConfig = {
 }
 
 var game = new Game(gameConfig);
+
+var _h = window.innerHeight * .8;
+var _w = _h * .8; 
+
+target.style.height = _h;
+
+target.style.width = _w;
