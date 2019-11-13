@@ -1,3 +1,14 @@
+/*
+
+The Assembler determines where the maplings has to go one the screen and it populates them.
+
+if the assembler sees two consecutive directions in the same axis, it will add a -o flag to the second one and reverse its boundaryProps
+
+Assembler is dumb about the directions other than that, the mapper is the one that creates the directions based on rules
+
+The Assembler will ask the mapper for directions once its directions are used up
+ */
+
 var Assembler = (function() {
 
     function assembler(config) {
@@ -12,11 +23,26 @@ var Assembler = (function() {
     }
 
     function _init() {
-        this.que = [];
-        this.queIndex = 0;
-        this.assembleIndex = 0;
+        this.que = []; // holds unpopulated maplings
+        this.populated = {}; // holds currently populated maplings
+        this.popped = []; // holds the popped mapplings and removes them from containers after some time
+
+        this.counter = 0; // used to id the maplings in order of their creation, used for getting a specific mapling from the populated[]
 
         this.controlPointDistance = 15;
+        
+        var firstDirection = this.directions[0];
+        _calculatePosition.call(this);
+
+
+        var mapperConfig = {
+            mapArea: { height: this.height, width: this.width },
+            maplingSize: {max: this.mapling.maxLength, min: this.mapling.length},
+            seed: {dir: firstDirection, pos: this.que[0].position}
+        }
+        this.mapper = new Mapper(mapperConfig);
+
+        Array.prototype.push.apply(this.que, this.mapper.set);
 
         _calculatePosition.call(this);
         _populateContainer.call(this);
@@ -29,23 +55,23 @@ var Assembler = (function() {
 
     // dumb position calculator
     function _calculatePosition() {
-        var dirCount = this.directions.length;
-
-        for (var i = this.queIndex; i < dirCount; i++) {
-
-            var mapling = this.mapling.get(this.directions[i]);
-            this.directionCodes = this.directions[i].split("-");
+        var firstFlag = true;
+        while (this.directions.length) {
+            var direction = this.directions.shift(); // pops the first element out / FIFO
+            var mapling = this.mapling.get(direction);
+            this.directionCodes = direction.split("-");
 
             var position;
-            if (!i) { // first direction position
+            if (firstFlag) { // first direction position
+                firstFlag = false;
                 this.unitLength = Math.abs(mapling.width - mapling.height);
 
                 position = new Vector2();
                 if (this.directionCodes[2] === 'l') {
                     position.setX(this.width - this.unitLength);
                 }
-            } else { 
-                var prevMapling = this.que[this.queIndex - 1];
+            } else {
+                var prevMapling = this.que[this.que.length - 1];
                 var prevCodes = this.previousDirectionCodes;
                 position = _calculatePathPosition.call(this, mapling, prevMapling, prevCodes);
 
@@ -55,14 +81,13 @@ var Assembler = (function() {
 
             mapling.position = position;
             mapling.controlPosition = controlPosition;
-            mapling.direction = this.directions[i];
-            mapling.index = i;
+            mapling.direction = direction;
 
             mapling.boundaryProps = _calculateBoundaryProps(this.directionCodes, mapling); // used by tracker
-
-            this.que[this.queIndex] = mapling;
-            this.queIndex++;
+            mapling.id = this.counter++;
+            this.que.push(mapling);
             this.previousDirectionCodes = this.directionCodes;
+
         }
     }
 
@@ -82,37 +107,29 @@ var Assembler = (function() {
         return circle;
     }
 
-    function _calculateBoundaryProps(direction, mapling)
-    {
+    function _calculateBoundaryProps(direction, mapling) {
         var axis = (direction[0] === 'h') ? 'x' : 'y';
         var condition = {
-         x: (direction[1] === 'u' || direction[1] === 'l') ? '>' : '<',
-         y: (direction[2] === 'u' || direction[2] === 'l') ? '>' : '<'
+            x: (direction[1] === 'u' || direction[1] === 'l') ? '>' : '<',
+            y: (direction[2] === 'u' || direction[2] === 'l') ? '>' : '<'
         }
         var boundary = new Vector2();
         boundary.x = mapling.position.x;
         boundary.y = mapling.position.y;
-        if(direction[0] === 'h')
-        {
-            if(direction[1] === 'r')
-            {
+        if (direction[0] === 'h') {
+            if (direction[1] === 'r') {
                 boundary.x += mapling.width;
             }
-            
-            if(direction[2] === 'd')
-            {
+
+            if (direction[2] === 'd') {
                 boundary.y += mapling.height;
             }
-        }
-        else
-        {
-            if(direction[1] === 'd')
-            {
+        } else {
+            if (direction[1] === 'd') {
                 boundary.y += mapling.height;
             }
-            if(direction[2] === 'r')
-            {
-                boundary.x += mapling.width;   
+            if (direction[2] === 'r') {
+                boundary.x += mapling.width;
             }
         }
 
@@ -223,51 +240,69 @@ var Assembler = (function() {
     }
 
     function _populateContainer() {
-        var dirCount = this.directions.length;
-        for (var i = this.assembleIndex; i < dirCount; i++) {
+        while (this.que.length) {
             _populateNext.call(this);
         }
     }
 
     function _populateNext() {
-        var i = this.assembleIndex;
-        if (i < this.queIndex) {
+        var mapling = this.que.shift(); // pop the first element / FIFO
+        var position = mapling.position;
+        var controlPosition = mapling.controlPosition;
 
-            var mapling = this.que[i];
-            var position = mapling.position;
-            var controlPosition = mapling.controlPosition;
+        var path = canvasToSprite(mapling.canvas);
+        path.position.set(position.x, position.y);
 
-            var sprite = canvasToSprite(mapling.canvas);
-            sprite.position.set(position.x, position.y);
+        var controlPoint = _circleSprite();
+        controlPoint.position.set(controlPosition.x, controlPosition.y);
 
-            var controlPoint = _circleSprite();
-            controlPoint.position.set(controlPosition.x, controlPosition.y);
-
-            console.log("path - ", sprite.position);
-            console.log("control - ", controlPoint.position);
+        console.log("path - ", path.position);
+        console.log("control - ", controlPoint.position);
 
 
-            this.pathContainer.addChild(sprite);
-            this.controlPointContainer.addChild(controlPoint);
+        this.pathContainer.addChild(path);
+        this.controlPointContainer.addChild(controlPoint);
 
-            this.que[i].sprite = { path: sprite, control: controlPoint };
+        mapling.sprites = { path: path, control: controlPoint };
 
-            this.assembleIndex++;
+        this.populated[mapling.id] = mapling;
+    }
+
+
+
+    function _addDirections() {
+        this.mapper.updateSet();
+        Array.prototype.push.apply(this.directions, this.mapper.set);
+        _calculatePosition.call(this);
+        _populateContainer.call(this);
+    }
+
+    function _getMapling(id, popFlag) {
+        var mapling = this.populated[id];
+        if (popFlag) {
+            this.popped.push(this.populated[id]);
+            delete this.populated[id];
+            _cleanPopped.call(this);
+            if(this.populated.length < (this.mapper.setSize / 2))
+            {
+                _addDirections.call(this);
+            }
+        }
+        return mapling;
+    }
+
+    function _cleanPopped()
+    {
+        while(this.popped.length > 3)
+        {
+            var mapling = this.popped.shift(); // FIFO
+            this.pathContainer.removeChild(mapling.sprites.path);
+            this.controlPointContainer.removeChild(mapling.sprites.control);
         }
     }
 
-
-
-    function _addDirections(directions) {
-
-    }
-
-    function _popDirection() {
-
-    }
-
-    assembler.prototype.populateNext = function() {
-        _populateNext.call(this);
+    assembler.prototype.getMapling = function(id, popFlag) {
+        return _getMapling.call(this, id, popFlag);
     }
 
 

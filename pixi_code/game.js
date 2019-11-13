@@ -49,21 +49,21 @@ var Game = (function() {
         this.configs = {
             "mapling": {
                 minLength: 100,
-                maxLength: 300,
-                pathLength: 2,
+                maxLength: 400,
+                maxPaths: 3,
             }
         }
 
         this.mapling = new Mapling(this.configs.mapling);
 
         this.configs.assembler = {
-            directions: ["v-u-l", "h-l-d", "v-d-r", "h-r-u"], // hard coded for now, but needs to be generated procedurally-
+            // directions: ["v-u-l", "h-l-d", "v-d-r", "h-r-u"], // hard coded for now, but needs to be generated procedurally-
+            directions: ["v-u-l"],
             height: this.configs.mapling.maxLength * 4,
             width: this.configs.mapling.maxLength * 4,
             mapling: this.mapling,
             container: this.mapContainer,
             controlPointContainer: this.controlPointContainer
-
         }
 
         this.assembler = new Assembler(this.configs.assembler);
@@ -101,10 +101,10 @@ var Game = (function() {
 
     function _start() {
         var _this = this;
-        var firstMapling = this.assembler.que[0];
+        var firstMapling = this.assembler.getMapling(0);
 
         // move the mapContainer to the starting position
-        this.props.manualPosition.x = 25 - firstMapling.position.x;
+        this.props.manualPosition.x = ((this.screen.width - firstMapling.width)/2) - firstMapling.position.x;
         this.props.manualPosition.y = this.screen.height - (firstMapling.position.y + firstMapling.height);
 
         // this.props.manualPosition.invert();
@@ -112,7 +112,7 @@ var Game = (function() {
         this.props.manualOverride = true;
         _updatePosition.call(this);
 
-        this.props.activeMapling = this.assembler.que[0];
+        this.props.activeMapling = firstMapling;
         this.props.direction = this.props.activeMapling.direction.split("-");
         this.props.firstFlag = true;
         this.props.diagonalFlag = false;
@@ -238,18 +238,12 @@ var Game = (function() {
         }
     }
 
-    function _getNextMapling() {
-        var index = this.props.activeMapling.index;
-        if (index + 1 < this.assembler.que.length) {
-            index++;
-        } else {
-            index = 0;
-        }
-        return this.assembler.que[index];
+    function _getNextMapling(popFlag) {
+        return this.assembler.getMapling(this.props.activeMapling.id + 1, popFlag);
     }
 
     function _moveToNextMapling() {
-        var nextMapling = _getNextMapling.call(this);
+        var nextMapling = _getNextMapling.call(this, true);
         this.props.activeMapling = nextMapling;
         this.props.direction = nextMapling.direction.split("-");
         this.props.nextFlag = true;
@@ -288,8 +282,13 @@ var Game = (function() {
         if (event.keyCode === 32) {
 
             if (!this.props.spaceFlag) {
-                this.props.spaceFlag = true;
-                this.props.firstFlag = true;
+                var screenCenterInverse = new Vector2(-this.props.screenCenter.x, -this.props.screenCenter.y);
+                var radius = distanceBetween(screenCenterInverse, this.props.activeMapling.controlPosition);
+                if (radius <= this.configs.mapling.minLength - 10)
+                {
+                    this.props.spaceFlag = true;
+                    this.props.firstFlag = true;
+                }
             }
 
         }
@@ -327,12 +326,12 @@ var Game = (function() {
                 var mapling = this.props.activeMapling;
                 var screenCenterInverse = new Vector2(-this.props.screenCenter.x, -this.props.screenCenter.y);
                 var initialPosition = new Vector2(this.mapContainer.x, this.mapContainer.y);
-                var controlPosition = this.assembler.que[mapling.index].controlPosition;
+                var controlPosition = mapling.controlPosition;
 
                 var angle = Math.atan2(screenCenterInverse.y - controlPosition.y, screenCenterInverse.x - controlPosition.x); // in radian
                 angle = radToDeg(angle); // convert to angle
                 var radius = distanceBetween(screenCenterInverse, controlPosition);
-                if (radius <= this.configs.mapling.minLength) {
+                if (radius <= this.configs.mapling.minLength - 10) {
                     var center = pointOnCircle(initialPosition, angle, radius); // center of the circle that the mapContainer moves in
 
                     var curveTranslatorConfig = {

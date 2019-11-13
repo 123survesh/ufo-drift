@@ -1,5 +1,7 @@
 var maplings = new Mapling({
-    length: 100
+    minLength: 100,
+                maxLength: 300,
+                maxPaths: 3,
 });
 
 var screenConf = {
