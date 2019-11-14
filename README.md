@@ -1,6 +1,7 @@
 # ufo-drift
-UFO Drift is a simple game clone version of Sling Drift Mobile game. Made with PIXI.js
-The Assets have been taken from https://opengameart.org
+UFO Drift is a simple game clone version of Sling Drift Mobile game. Made with pixi.js.
+
+The Assets used in this game were been taken from https://opengameart.org
 
 # Known issues you may face:
 - The game has visible lag with when run on lesser processing power devices such as mobile phones.  
