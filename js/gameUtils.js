@@ -15,13 +15,11 @@ function createCrossHair() {
     return sprite;
 }
 
-function addLine(start, end) {
+function getLine(start, end) {
     let line = new PIXI.Graphics();
-    line.lineStyle(4, 0xFFFFFF, 1);
-    line.moveTo(start.x, start.y);
-    line.lineTo(start.x+1, start.y+1);
-    // line.x = 32;
-    // line.y = 32;
-    mapContainer.addChild(line);
-    // return line;
+    line.lineStyle(10, 0XFF8D07, 1);
+    line.moveTo(0, 0);
+    line.lineTo(end.x - start.x, end.y - start.y);
+    line.position.set(start.x, start.y);
+    return line
 }

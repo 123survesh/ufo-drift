@@ -9,14 +9,12 @@ var Mapper = (function() {
 
     function _init() {
         this.setSize = Math.floor((this.mapArea.width / this.maplingSize.max) + (this.mapArea.height / this.maplingSize.max));
-        this.set = [];
-        this.dirTaken = {
-        	left: 0,
-        	right: 0,
-        	up: 0,
-        	down: 0,
+        // this.setSize = 5;
+        if(this.setSize > 4)
+        {
+            this.setSize = 4;
         }
-        this.dirLimit = Math.ceil(this.setSize/2) || 2;
+        this.set = [];
         if(typeof this.seed.dir === 'string')
         {
         	this.seed.dir = this.seed.dir.split("-");
@@ -115,37 +113,24 @@ var Mapper = (function() {
 
         if (newDir[0] === 'h') {
 
-        	if(this.dirTaken.down < this.dirLimit)
-        	{
-        		this.dirTaken.down++;
+            if(Math.floor(2 * Math.random()))
+            {
         		newDir[2] = 'd';
-        	}
-        	else if(this.dirTaken.up < this.dirLimit)
-        	{
-        		this.dirTaken.up++;
-        		newDir[2] = 'u';
-        	}
-        	else
-        	{
-        		this.dirTaken.down = 1 ; this.dirTaken.up = 0;
-        		newDir[2] = 'd';
-        	}
+            }
+            else
+            {
+                newDir[2] = 'u';   
+            }
+
         } else {
-        	if(this.dirTaken.left < this.dirLimit)
-        	{
-        		this.dirTaken.left++;
-        		newDir[2] = 'l';
-        	}
-        	else if(this.dirTaken.right < this.dirLimit)
-        	{
-        		this.dirTaken.right++;
-        		newDir[2] = 'r';
-        	}
-        	else
-        	{
-        		this.dirTaken.left = 1 ; this.dirTaken.right = 0;
-        		newDir[2] = 'l';
-        	}
+        	if(Math.floor(2 * Math.random()))
+            {
+                newDir[2] = 'l';
+            }
+            else
+            {
+                newDir[2] = 'r';   
+            }
         }
 
         newPos = _isFeasible.call(this, newDir, pos);

@@ -14,13 +14,10 @@ var appConfig = {
     resolution: 1
 }
 
-let app = new PIXI.Application(appConfig);
-target.appendChild(app.view);
-
 var gameConfig = {
-	app: app,
+	target: target,
 	screen: appConfig,
-	player: createCrossHair()
+	// crossHair: createCrossHair() // for testing
 }
 
 var game = new Game(gameConfig);

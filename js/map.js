@@ -36,7 +36,7 @@ var Mapling = (function() {
         this.maps = {};
         this.length = config.length || config.minLength;
         this.maxPaths = config.maxPaths || 2;
-        this.maxLength = config.maxLength || this.length * (this.maxPaths +1);
+        this.maxLength = config.maxLength || this.length * (this.maxPaths + 1);
         _init.call(this);
     }
 
@@ -67,18 +67,35 @@ var Mapling = (function() {
         this.arc.ctx.lineTo(0, this.length);
         this.arc.ctx.lineTo(this.length, this.length);
         this.arc.ctx.lineTo(0, 0);
-        this.arc.ctx.fillStyle = "blue";
+
+        this.arc.ctx.shadowColor = "black";
+        this.arc.ctx.shadowBlur = 10;
+        this.arc.ctx.shadowOffsetX = 10;
+        this.arc.ctx.shadowOffsetY = 10;
+        this.arc.ctx.stroke();
+
+        this.arc.ctx.fillStyle = "white";
         this.arc.ctx.fill();
 
         // vertical path
         this.path = new Canvaz(pathConfig);
-        this.path.ctx.fillStyle = "blue";
+        this.path.ctx.fillStyle = "white";
+        this.path.ctx.shadowColor = "black";
+        this.path.ctx.shadowBlur = 10;
+        this.path.ctx.shadowOffsetX = 10;
+        this.path.ctx.shadowOffsetY = 10;
         this.path.ctx.fillRect(0, 0, this.length, this.length * this.maxPaths);
-
+        // this.path.ctx.fill();
 
         this.pathH = new Canvaz(pathHConfig);
-        this.pathH.ctx.fillStyle = "blue";
+        this.pathH.ctx.fillStyle = "white";
+        this.pathH.ctx.shadowColor = "black";
+        this.pathH.ctx.shadowBlur = 10;
+        this.pathH.ctx.shadowOffsetX = 10;
+        this.pathH.ctx.shadowOffsetY = 10;
+        // this.pathH.ctx.stroke();
         this.pathH.ctx.fillRect(0, 0, this.length * this.maxPaths, this.length);
+        // this.pathH.ctx.fill();
 
         _createMaplings.call(this);
     }
@@ -93,7 +110,7 @@ var Mapling = (function() {
 
     function _createMapling(direction, pathCount) {
         var dir = direction;
-        pathCount = (pathCount > -1)? pathCount : Math.ceil(this.maxPaths * Math.random());
+        pathCount = (pathCount > -1) ? pathCount : Math.floor(this.maxPaths * Math.random());
         var maxCount = pathCount + 1; // path count can be 1, 2 .. maxPaths and arc count is always 1
         direction = direction.split("-");
         var arcStart = new Vector2(); // init to (0,0)
@@ -149,8 +166,8 @@ var Mapling = (function() {
             }
 
             mapling.ctx.drawImage(arcCopy.canvas, arcStart.x, arcStart.y);
-            if(pathCount)
-            mapling.ctx.drawImage(pathCopy.canvas, pathStart.x, pathStart.y);
+            if (pathCount)
+                mapling.ctx.drawImage(pathCopy.canvas, pathStart.x, pathStart.y);
 
         } else {
             pathCopy.ctx.drawImage(this.pathH.canvas, 0, 0);
@@ -177,16 +194,16 @@ var Mapling = (function() {
                 }
             }
             mapling.ctx.drawImage(arcCopy.canvas, arcStart.x, arcStart.y);
-            if(pathCount)
-            mapling.ctx.drawImage(pathCopy.canvas, pathStart.x, pathStart.y);
+            if (pathCount)
+                mapling.ctx.drawImage(pathCopy.canvas, pathStart.x, pathStart.y);
 
         }
         this.maps[dir2num[dir]] = mapling;
     }
 
     function _get(direction, pathCount) {
-        var toss = (Math.floor(2*Math.random()));
-        if(toss || (pathCount > -1)) // if toss is won get a new mapling (new maplings have random path size)
+        var toss = (Math.floor(2 * Math.random()));
+        if (toss || (pathCount > -1)) // if toss is won get a new mapling (new maplings have random path size)
         {
             _createMapling.call(this, direction, pathCount);
         }

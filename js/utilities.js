@@ -159,3 +159,11 @@ function pointOnCircle(center, degree, radius, radian) {
     coords.y = radius * Math.sin(angle) + center.y;
     return coords;
 }
+
+function textureToSprite(texture)
+{
+    var sprite = new PIXI.Sprite(texture);
+    sprite.anchor.x = 0.5;
+    sprite.anchor.y = 0.5;
+    return sprite;
+}

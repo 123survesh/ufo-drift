@@ -7,19 +7,47 @@
 
 var Game = (function() {
     function game(config) {
-        this.app = config.app; // Pixi Application
-        this.screen = config.screen; // screen dimensions
-        this.player = config.player;
+        this.target = config.target;
+        this.screen = config.screen; // screen dimensions and config for app
+        // this.player = config.player;
+        _preInit.call(this);
+    }
+
+    function _preInit()
+    {
+        this.app = new PIXI.Application(this.screen);
+        this.app.loader.add(['assets/stars.png', 'assets/ufo.png', 'assets/ball.png']).load(_loadCallback.bind(this));
+
+    }
+
+    function _loadCallback() {
+
+        this.textures = {};
+        // var treeTexture = PIXI.Texture.from('assets/stars.png');
+
+        var ufoTexture = PIXI.Texture.from('assets/ufo.png');
+
+        // this.textures["tree"] = treeTexture;
+        this.textures["ufo"] = ufoTexture;
+        this.textures["ball"] = PIXI.Texture.from('assets/ball.png');
         _init.call(this);
     }
 
     function _init() {
-        this.mapContainer = new PIXI.Container();
-        this.playerContainer = new PIXI.Container();
-        // this.pathContainer = new PIXI.Container();
-        this.controlPointContainer = new PIXI.Container();
+        var _this = this;
+        this.containers = {
+            map: new PIXI.Container(),
+            player: new PIXI.Container(),
+            // background: new PIXI.Container(),
+            controlPoint: new PIXI.Container(),
+            path: new PIXI.Container(),
+            text: new PIXI.Container(),
+        };
 
-        this.playerContainer.addChild(this.player);
+
+        this.containers.path.sortableChildren = true;
+        this.containers.controlPoint.sortableChildren = true;
+        // this.containers.player.addChild(this.player);
 
         // props -> a place to store all the loose game state variables
         this.props = {
@@ -27,7 +55,7 @@ var Game = (function() {
             manualPosition: new Vector2(),
             screenCenter: new Vector2(),
             flags: {},
-            stepValue: 3,
+            stepValue: 5,
             angleStep: 2,
             curve: {},
             activeMapling: null,
@@ -37,10 +65,8 @@ var Game = (function() {
             firstFlag: true, // firest move in a mapling / direction
             diagonalFlag: false, // must be reset on game restart
         }
-        this.screen.wb2 = this.screen.width /2;
-        this.screen.hb2 = this.screen.height - (this.player.height/2);
-        this.player.position.y = this.screen.hb2;
-        this.player.position.x = this.screen.wb2;
+        
+
 
         this.props.screenCenter.set(this.screen.wb2, this.screen.hb2);
 
@@ -50,8 +76,8 @@ var Game = (function() {
         // start the mover
         this.configs = {
             "mapling": {
-                minLength: this.screen.width/2,
-                maxLength: (this.screen.width/2) * 4,
+                minLength: this.screen.width / 2,
+                maxLength: (this.screen.width / 2) * 4,
                 maxPaths: 3,
             }
         }
@@ -64,27 +90,82 @@ var Game = (function() {
             height: this.configs.mapling.maxLength * 4,
             width: this.configs.mapling.maxLength * 4,
             mapling: this.mapling,
-            container: this.mapContainer,
-            controlPointContainer: this.controlPointContainer
+            container: this.containers.path,
+            controlPointContainer: this.containers.controlPoint,
+            textures: this.textures
         }
 
         this.assembler = new Assembler(this.configs.assembler);
+        
+        this.screen.wb2 = this.screen.width / 2;
+        this.screen.hb2 = this.screen.height - (this.screen.width / 2);
 
-        this.mapContainer.addChild(this.controlPointContainer);
-        this.app.stage.addChild(this.mapContainer);
-        this.app.stage.addChild(this.playerContainer);
+        // var trees = new PIXI.TilingSprite(this.textures.tree, this.configs.assembler.width, this.configs.assembler.height);
+        // this.containers.background.addChild(trees);
+        
+        var ufo = new PIXI.Sprite(this.textures.ufo);
+        ufo.width = this.screen.width/5;
+        ufo.height = this.screen.width/5;
+        ufo.anchor.x = 0.5;
+        ufo.anchor.y = 0.5;
+        ufo.position.y = this.screen.hb2;
+        ufo.position.x = this.screen.wb2;
+        this.containers.player.addChild(ufo);
+
+        // this.containers.controlPoint.zIndex = 2000;
+        this.containers.map.addChild(this.containers.path);
+        this.containers.map.addChild(this.containers.controlPoint);
+        // this.app.stage.addChild(this.containers.background);
+        this.app.stage.addChild(this.containers.map);
+        this.app.stage.addChild(this.containers.player);
+        this.app.stage.addChild(this.containers.text);
+        
+        this.scoreText = new PIXI.Text("Score: 0", {font: "bold italic 60px sans-serif", fill: "#ffffff", align: "right", stroke: "#a4410e", strokeThickness: 7});
+        this.scoreText.position.x = this.screen.width - (this.scoreText.width + 30);
+        this.scoreText.position.y = 30;
+
+
+        this.containers.text.addChild(this.scoreText);
+        // PIXI.SCALE_MODES.DEFAULT = PIXI.SCALE_MODES.NEAREST;
+        // 
+        this.app.ticker.stop();
+        this.app.ticker.add(function(dt) {
+            _gameLoop.call(_this, dt);
+        });
+        
+        this.target.appendChild(this.app.view);
         _start.call(this);
     }
 
+    function _updateScore(score)
+    {
+        this.scoreText.text = "Score: "+(score+1);
+    }
+
+    function _gameOver()
+    {
+
+
+        this.gameOverText = new PIXI.Text("Game Over \n Score: "+ this.props.activeMapling.id, {fontStyle: "bold", fontSize: "60px", fill: "#AC3232", align: "center", stroke: "#FFFFFF", strokeThickness: 7});
+        this.gameOverText.anchor.x = 0.5;
+        this.gameOverText.anchor.y = 0.5;
+
+        this.gameOverText.x = this.screen.width / 2;
+        this.gameOverText.y = this.screen.height / 2;
+
+        this.containers.text.addChild(this.gameOverText);
+    }
+
+
     function _updatePosition() {
-        this.mapContainer.x += this.props.velocity.x;
-        this.mapContainer.y += this.props.velocity.y;
+        this.containers.map.x += this.props.velocity.x;
+        this.containers.map.y += this.props.velocity.y;
         if (this.props.manualOverride) {
-            this.mapContainer.x = this.props.manualPosition.x;
-            this.mapContainer.y = this.props.manualPosition.y;
+            this.containers.map.x = this.props.manualPosition.x;
+            this.containers.map.y = this.props.manualPosition.y;
         }
-        this.props.screenCenter.x = this.mapContainer.x - this.screen.wb2;
-        this.props.screenCenter.y = this.mapContainer.y - this.screen.hb2;
+        this.props.screenCenter.x = this.containers.map.x - this.screen.wb2;
+        this.props.screenCenter.y = this.containers.map.y - this.screen.hb2;
     }
 
     function _gameLoop(dt) {
@@ -92,9 +173,11 @@ var Game = (function() {
             this.state(dt);
         } else {
             console.log("game over 8_8");
+            _gameOver.call(this);
             this.app.ticker.stop();
         }
     }
+
 
     function _play(dt) {
         _track.call(this);
@@ -103,7 +186,7 @@ var Game = (function() {
 
     function _start() {
         var _this = this;
-        var firstMapling = this.assembler.getMapling(0);
+        var firstMapling = this.assembler.getMapling(0, true);
 
         // move the mapContainer to the starting position
         this.props.manualPosition.x = ((this.screen.width - firstMapling.width) / 2) - firstMapling.position.x;
@@ -121,19 +204,24 @@ var Game = (function() {
         this.props.manualOverride = false;
         this.props.collision = false;
 
+        this.props.activeMapling.sprites.path.tint = 0x94E894;
+
         this.state = _play.bind(this);
         _setEventListeners.call(this);
 
-        this.app.ticker.add(function(dt) {
-            _gameLoop.call(_this, dt);
-        });
-
+        this.app.ticker.start();
         // add the tracker to ticker list
         // add the mover to ticker list
 
 
 
     }
+
+    function _end()
+    {
+            
+    }
+
 
     function _checkCollision(boundaryProps) {
         var report = {
@@ -227,10 +315,13 @@ var Game = (function() {
     }
 
     function _moveToNextMapling() {
+        _updateScore.call(this, this.props.activeMapling.id);
         var nextMapling = _getNextMapling.call(this, true);
+        this.props.activeMapling.index = 0;
         this.props.activeMapling = nextMapling;
         this.props.direction = nextMapling.direction.split("-");
         this.props.nextFlag = true;
+        this.props.activeMapling.sprites.path.tint = Math.random() * 0xFFFFFF;
     }
 
 
@@ -255,7 +346,10 @@ var Game = (function() {
         }
 
         // document.addEventListener('mousedown', this.eventListeners.onPress);
-        document.addEventListener('touchstart', function(e){_this.props.touchFlag = true;_this.eventListeners.onPress(e);});
+        document.addEventListener('touchstart', function(e) {
+            _this.props.touchFlag = true;
+            _this.eventListeners.onPress(e);
+        });
         document.addEventListener('keydown', this.eventListeners.onPress);
 
         // document.addEventListener('mouseup', this.eventListeners.onRelease);
@@ -267,15 +361,17 @@ var Game = (function() {
         if (event.keyCode === 32 || this.props.touchFlag) {
 
             if (!this.props.spaceFlag) {
+
+
+
                 var screenCenterInverse = new Vector2(-this.props.screenCenter.x, -this.props.screenCenter.y);
                 var radius = distanceBetween(screenCenterInverse, this.props.activeMapling.controlPosition);
-                if (radius <= this.configs.mapling.minLength - 10) {
+                if (radius <= this.configs.mapling.minLength + 10) {
+
                     this.props.spaceFlag = true;
                     this.props.firstFlag = true;
                 }
-            }
-            else
-            {
+            } else {
                 console.log();
             }
 
@@ -284,6 +380,7 @@ var Game = (function() {
 
     function _onRelease(event) {
         if (this.props.spaceFlag) {
+
             this.props.touchFlag = false;
             this.props.spaceFlag = false;
             this.props.manualOverride = false;
@@ -295,6 +392,11 @@ var Game = (function() {
             }
             if (this.nextFlag) {
                 this.nextFlag = false;
+            }
+
+            if(this.props.curve.controlLine)
+            {
+                this.containers.map.removeChild(this.props.curve.controlLine);
             }
         }
     }
@@ -314,14 +416,17 @@ var Game = (function() {
                 var clockwiseFlag = (dir == 'v-u-r' || dir == 'v-d-l' || dir == 'h-r-d' || dir == 'h-l-u') ? true : false;
                 var mapling = this.props.activeMapling;
                 var screenCenterInverse = new Vector2(-this.props.screenCenter.x, -this.props.screenCenter.y);
-                var initialPosition = new Vector2(this.mapContainer.x, this.mapContainer.y);
+                var initialPosition = new Vector2(this.containers.map.x, this.containers.map.y);
                 var controlPosition = mapling.controlPosition;
 
                 var angle = Math.atan2(screenCenterInverse.y - controlPosition.y, screenCenterInverse.x - controlPosition.x); // in radian
                 angle = radToDeg(angle); // convert to angle
-                var startingAngle = 180+angle; 
+                var startingAngle = 180 + angle;
                 var radius = distanceBetween(screenCenterInverse, controlPosition);
                 var center = pointOnCircle(initialPosition, angle, radius); // center of the circle that the mapContainer moves in
+                
+                var controlLine = getLine(controlPosition, screenCenterInverse); 
+                this.containers.map.addChild(controlLine);
 
                 var curveTranslatorConfig = {
                     startingAngle: startingAngle,
@@ -330,18 +435,20 @@ var Game = (function() {
                         var pos = pointOnCircle(center, ang, radius);
                         _this.props.manualPosition.x = pos.x;
                         _this.props.manualPosition.y = pos.y;
+                        if(controlLine)
+                        controlLine.angle = curveMover.rotatedBy;
 
                         _this.props.curve.angle = ang;
                     },
                     step: this.props.angleStep
                 }
                 curveMover = new curveTranslator(curveTranslatorConfig);
-
                 this.props.curve = {
                     angle: angle,
                     radius: radius,
                     center: center,
-                    mover: curveMover
+                    mover: curveMover,
+                    controlLine: controlLine
                 }
 
                 this.props.manualOverride = true; // starts setting the position of the mapContainer directly

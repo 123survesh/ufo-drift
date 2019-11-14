@@ -18,7 +18,9 @@ var Assembler = (function() {
         this.mapling = config.mapling;
         this.pathContainer = config.container;
         this.controlPointContainer = config.controlPointContainer;
-
+        this.spriteProps = {
+            textures: config.textures
+        }
         _init.call(this);
     }
 
@@ -26,10 +28,10 @@ var Assembler = (function() {
         this.que = []; // holds unpopulated maplings
         this.populated = {}; // holds currently populated maplings
         this.popped = []; // holds the popped mapplings and removes them from containers after some time
-
+        this.index = 1000;
         this.counter = 0; // used to id the maplings in order of their creation, used for getting a specific mapling from the populated[]
 
-        this.controlPointDistance = 15;
+        this.controlPointDistance = 0;
         
         var firstDirection = this.directions[0];
         _calculatePosition.call(this, true);
@@ -254,11 +256,20 @@ var Assembler = (function() {
         var position = mapling.position;
         var controlPosition = mapling.controlPosition;
 
+        var index = this.index--;
+
+        if(!index)
+        {
+            index = this.index = 1000;
+
+        }
         var path = canvasToSprite(mapling.canvas);
         path.position.set(position.x, position.y);
+        path.zIndex = index;
 
-        var controlPoint = _circleSprite();
+        var controlPoint = textureToSprite(this.spriteProps.textures.ball);
         controlPoint.position.set(controlPosition.x, controlPosition.y);
+        controlPoint.zIndex = index;
 
         // console.log("path - ", path.position);
         // console.log("control - ", controlPoint.position);
@@ -279,6 +290,8 @@ var Assembler = (function() {
         Array.prototype.push.apply(this.directions, this.mapper.set);
         _calculatePosition.call(this);
         _populateContainer.call(this);
+        this.pathContainer.sortChildren();
+        this.controlPointContainer.sortChildren();
     }
 
     function _getMapling(id, popFlag) {
@@ -303,6 +316,8 @@ var Assembler = (function() {
             this.pathContainer.removeChild(mapling.sprites.path);
             this.controlPointContainer.removeChild(mapling.sprites.control);
         }
+        this.pathContainer.sortChildren();
+        this.controlPointContainer.sortChildren();
     }
 
     assembler.prototype.getMapling = function(id, popFlag) {
