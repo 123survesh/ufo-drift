@@ -69,9 +69,7 @@ var Mapling = (function() {
         this.arc.ctx.lineTo(0, 0);
 
         this.arc.ctx.shadowColor = "black";
-        this.arc.ctx.shadowBlur = 10;
-        this.arc.ctx.shadowOffsetX = 10;
-        this.arc.ctx.shadowOffsetY = 10;
+        this.arc.ctx.shadowBlur = 15;
         this.arc.ctx.stroke();
 
         this.arc.ctx.fillStyle = "white";
@@ -81,21 +79,14 @@ var Mapling = (function() {
         this.path = new Canvaz(pathConfig);
         this.path.ctx.fillStyle = "white";
         this.path.ctx.shadowColor = "black";
-        this.path.ctx.shadowBlur = 10;
-        this.path.ctx.shadowOffsetX = 10;
-        this.path.ctx.shadowOffsetY = 10;
+        this.path.ctx.shadowBlur = 15;
         this.path.ctx.fillRect(0, 0, this.length, this.length * this.maxPaths);
-        // this.path.ctx.fill();
 
         this.pathH = new Canvaz(pathHConfig);
         this.pathH.ctx.fillStyle = "white";
         this.pathH.ctx.shadowColor = "black";
-        this.pathH.ctx.shadowBlur = 10;
-        this.pathH.ctx.shadowOffsetX = 10;
-        this.pathH.ctx.shadowOffsetY = 10;
-        // this.pathH.ctx.stroke();
+        this.pathH.ctx.shadowBlur = 15;
         this.pathH.ctx.fillRect(0, 0, this.length * this.maxPaths, this.length);
-        // this.pathH.ctx.fill();
 
         _createMaplings.call(this);
     }

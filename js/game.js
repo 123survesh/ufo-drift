@@ -13,11 +13,18 @@ var Game = (function() {
         _preInit.call(this);
     }
 
-    function _preInit()
-    {
+    function _preInit() {
+        var _this = this;
         this.app = new PIXI.Application(this.screen);
         this.app.loader.add(['assets/stars.png', 'assets/ufo.png', 'assets/ball.png']).load(_loadCallback.bind(this));
+        this.target.appendChild(this.app.view);
 
+        // this.app.ticker.autoStart = false;
+        this.app.ticker.add(function(dt) {
+            _gameLoop.call(_this, dt);
+        });
+        this.app.ticker.stop();
+        _setEventListeners.call(this);
     }
 
     function _loadCallback() {
@@ -33,12 +40,14 @@ var Game = (function() {
         _init.call(this);
     }
 
+    function _solitaryState() {
+        this.props.velocity.set(0, 0);
+    }
+
     function _init() {
-        var _this = this;
         this.containers = {
             map: new PIXI.Container(),
             player: new PIXI.Container(),
-            // background: new PIXI.Container(),
             controlPoint: new PIXI.Container(),
             path: new PIXI.Container(),
             text: new PIXI.Container(),
@@ -47,33 +56,37 @@ var Game = (function() {
 
         this.containers.path.sortableChildren = true;
         this.containers.controlPoint.sortableChildren = true;
-        // this.containers.player.addChild(this.player);
+
+        this.flags = {
+            manualOverride: false,
+            userInterrupt: false,
+            turning: false,
+            moveStart: true,
+            collision: false,
+            yetToStart: true,
+            helpText: false,
+            collision: false,
+            touch: false
+        }
 
         // props -> a place to store all the loose game state variables
         this.props = {
             velocity: new Vector2(),
             manualPosition: new Vector2(),
             screenCenter: new Vector2(),
-            flags: {},
             stepValue: 5,
             angleStep: 2,
             curve: {},
             activeMapling: null,
             direction: null,
-            manualOverride: false, // overrides the update of mapContainer position
-            spaceFlag: false, // space bar is pressed, curve is in motion
-            firstFlag: true, // firest move in a mapling / direction
-            diagonalFlag: false, // must be reset on game restart
         }
-        
 
 
-        this.props.screenCenter.set(this.screen.wb2, this.screen.hb2);
 
-        // create Mapling
-        // create Assembler with Mapling and Directions
-        // Move map container to init position
-        // start the mover
+        /*create Mapling
+        create Assembler with Mapling and Directions
+        Move map container to init position
+        start the mover*/
         this.configs = {
             "mapling": {
                 minLength: this.screen.width / 2,
@@ -85,7 +98,6 @@ var Game = (function() {
         this.mapling = new Mapling(this.configs.mapling);
 
         this.configs.assembler = {
-            // directions: ["v-u-l", "h-l-d", "v-d-r", "h-r-u"], // hard coded for now, but needs to be generated procedurally-
             directions: ["v-u-l"],
             height: this.configs.mapling.maxLength * 4,
             width: this.configs.mapling.maxLength * 4,
@@ -96,16 +108,18 @@ var Game = (function() {
         }
 
         this.assembler = new Assembler(this.configs.assembler);
-        
-        this.screen.wb2 = this.screen.width / 2;
-        this.screen.hb2 = this.screen.height - (this.screen.width / 2);
+
 
         // var trees = new PIXI.TilingSprite(this.textures.tree, this.configs.assembler.width, this.configs.assembler.height);
         // this.containers.background.addChild(trees);
-        
+        this.screen.wb2 = this.screen.width / 2;
+        this.screen.hb2 = this.screen.height - (this.screen.width / 2);
+        this.props.screenCenter.set(this.screen.wb2, this.screen.hb2);
+
+
         var ufo = new PIXI.Sprite(this.textures.ufo);
-        ufo.width = this.screen.width/5;
-        ufo.height = this.screen.width/5;
+        ufo.width = this.screen.width / 5;
+        ufo.height = this.screen.width / 5;
         ufo.anchor.x = 0.5;
         ufo.anchor.y = 0.5;
         ufo.position.y = this.screen.hb2;
@@ -119,48 +133,35 @@ var Game = (function() {
         this.app.stage.addChild(this.containers.map);
         this.app.stage.addChild(this.containers.player);
         this.app.stage.addChild(this.containers.text);
-        
-        this.scoreText = new PIXI.Text("Score: 0", {font: "bold italic 60px sans-serif", fill: "#ffffff", align: "right", stroke: "#a4410e", strokeThickness: 7});
+
+        this.scoreText = new PIXI.Text("Score: 0", { fontStyle: "bold", fontSize: "30px", fill: "#ffffff", align: "right", stroke: "#a4410e", strokeThickness: 7 });
         this.scoreText.position.x = this.screen.width - (this.scoreText.width + 30);
         this.scoreText.position.y = 30;
 
+        this.startText = new PIXI.Text("Tap To Start", { fontStyle: "bold", fontSize: "60px", fill: "#AC3232", align: "center", stroke: "#FFFFFF", strokeThickness: 7 });
+        this.startText.anchor.x = 0.5;
+        this.startText.anchor.y = 0.5;
+        this.startText.position.set(this.screen.width / 2, this.screen.height / 2);
+
 
         this.containers.text.addChild(this.scoreText);
+        this.containers.text.addChild(this.startText);
+
         // PIXI.SCALE_MODES.DEFAULT = PIXI.SCALE_MODES.NEAREST;
-        // 
-        this.app.ticker.stop();
-        this.app.ticker.add(function(dt) {
-            _gameLoop.call(_this, dt);
-        });
-        
-        this.target.appendChild(this.app.view);
+        // this.app.ticker.stop();
         _start.call(this);
     }
 
-    function _updateScore(score)
-    {
-        this.scoreText.text = "Score: "+(score+1);
+    function _updateScore(score) {
+        this.scoreText.text = "Score: " + (score + 1);
     }
 
-    function _gameOver()
-    {
-
-
-        this.gameOverText = new PIXI.Text("Game Over \n Score: "+ this.props.activeMapling.id, {fontStyle: "bold", fontSize: "60px", fill: "#AC3232", align: "center", stroke: "#FFFFFF", strokeThickness: 7});
-        this.gameOverText.anchor.x = 0.5;
-        this.gameOverText.anchor.y = 0.5;
-
-        this.gameOverText.x = this.screen.width / 2;
-        this.gameOverText.y = this.screen.height / 2;
-
-        this.containers.text.addChild(this.gameOverText);
-    }
 
 
     function _updatePosition() {
         this.containers.map.x += this.props.velocity.x;
         this.containers.map.y += this.props.velocity.y;
-        if (this.props.manualOverride) {
+        if (this.flags.manualOverride) {
             this.containers.map.x = this.props.manualPosition.x;
             this.containers.map.y = this.props.manualPosition.y;
         }
@@ -169,7 +170,7 @@ var Game = (function() {
     }
 
     function _gameLoop(dt) {
-        if (!this.props.collision) {
+        if (!this.flags.collision) {
             this.state(dt);
         } else {
             console.log("game over 8_8");
@@ -194,34 +195,47 @@ var Game = (function() {
 
         // this.props.manualPosition.invert();
         this.props.velocity.set(0, 0);
-        this.props.manualOverride = true;
+        this.flags.manualOverride = true;
         _updatePosition.call(this);
 
         this.props.activeMapling = firstMapling;
         this.props.direction = this.props.activeMapling.direction.split("-");
-        this.props.firstFlag = true;
-        this.props.diagonalFlag = false;
-        this.props.manualOverride = false;
-        this.props.collision = false;
+        this.flags.moveStart = true;
+        this.flags.manualOverride = false;
+        this.flags.collision = false;
 
         this.props.activeMapling.sprites.path.tint = 0x94E894;
 
-        this.state = _play.bind(this);
-        _setEventListeners.call(this);
-
+        this.state = _solitaryState.bind(this);
         this.app.ticker.start();
-        // add the tracker to ticker list
-        // add the mover to ticker list
-
-
+        // this.app.ticker.start();
 
     }
 
-    function _end()
-    {
-            
+    function _gameOver() {
+        this.flags.turning = false;
+
+        this.gameOverText = new PIXI.Text("Game Over \n Score: " + this.props.activeMapling.id + "\n Restart ?", { fontStyle: "bold", fontSize: "60px", fill: "#AC3232", align: "center", stroke: "#FFFFFF", strokeThickness: 7 });
+        this.gameOverText.anchor.x = 0.5;
+        this.gameOverText.anchor.y = 0.5;
+
+        this.gameOverText.x = this.screen.width / 2;
+        this.gameOverText.y = this.screen.height / 2;
+
+        this.containers.text.addChild(this.gameOverText);
     }
 
+    function _cleanBeforeStart() {
+        // remove containers from app stage
+        // empty props
+        this.app.stage.removeChild(this.containers.map);
+        this.app.stage.removeChild(this.containers.player);
+        this.app.stage.removeChild(this.containers.text);
+
+        this.props = {};
+        this.assembler = {};
+
+    }
 
     function _checkCollision(boundaryProps) {
         var report = {
@@ -275,38 +289,23 @@ var Game = (function() {
         var collisionReport = _checkCollision.call(this, this.props.activeMapling.boundaryProps);
         var axis = this.props.activeMapling.boundaryProps.axis;
 
-        if (this.props.spaceFlag) {
-            if (collisionReport.x || collisionReport.y) // collision occured
-            {
-                var nextMapling = _getNextMapling.call(this);
-                collisionReport = _checkCollision.call(this, nextMapling.boundaryProps);
-                if (collisionReport.x || collisionReport.y) {
-                    // collision occured stop moving
-                    this.props.collision = true;
-                } else { // move to next mapling
-                    _moveToNextMapling.call(this);
-                    _move.call(this); // must set this.props.firstFlag = true on space release
-
+        if (collisionReport.x || collisionReport.y) // collision occured
+        {
+            var nextMapling = _getNextMapling.call(this);
+            collisionReport = _checkCollision.call(this, nextMapling.boundaryProps);
+            if (collisionReport.x || collisionReport.y) {
+                // collision occured stop moving
+                this.flags.collision = true;
+            } else { // move to next mapling
+                if (!this.flags.turning) {
+                    this.flags.moveStart = true;
                 }
-            } else {
-                _move.call(this);
+                _moveToNextMapling.call(this);
+                _move.call(this); // must set this.flags.moveStart = true on space release
+
             }
         } else {
-            // regular path movement
-            if (collisionReport[axis]) {
-                var nextMapling = _getNextMapling.call(this);
-                var nextDirection = nextMapling.direction.split("-");
-                if (nextDirection[0] === this.props.direction[0]) // moved on to next platform
-                {
-                    this.props.firstFlag = true;
-                    _move.call(this);
-                } else {
-                    // collision occurred stop moving
-                    this.props.collision = true;
-                }
-            } else {
-                _move.call(this);
-            }
+            _move.call(this);
         }
     }
 
@@ -317,10 +316,14 @@ var Game = (function() {
     function _moveToNextMapling() {
         _updateScore.call(this, this.props.activeMapling.id);
         var nextMapling = _getNextMapling.call(this, true);
-        this.props.activeMapling.index = 0;
+
+        this.props.activeMapling.zIndex = 0;
+
         this.props.activeMapling = nextMapling;
         this.props.direction = nextMapling.direction.split("-");
+
         this.props.nextFlag = true;
+
         this.props.activeMapling.sprites.path.tint = Math.random() * 0xFFFFFF;
     }
 
@@ -331,7 +334,7 @@ var Game = (function() {
                 -> if <= min length of mapling proceed, else wait
 
         on space release
-            -> if in safeZone, this.props.firstFlag = true; and proceed
+            -> if in safeZone, this.flags.moveStart = true; and proceed
                 -> if (angle > 45) safeZone = true
                 -> if (angle < 135 ) safeZone = true
             -> else set diagonal flag true 
@@ -347,7 +350,7 @@ var Game = (function() {
 
         // document.addEventListener('mousedown', this.eventListeners.onPress);
         document.addEventListener('touchstart', function(e) {
-            _this.props.touchFlag = true;
+            _this.flags.touch = true;
             _this.eventListeners.onPress(e);
         });
         document.addEventListener('keydown', this.eventListeners.onPress);
@@ -358,58 +361,92 @@ var Game = (function() {
     }
 
     function _onPress(event) {
-        if (event.keyCode === 32 || this.props.touchFlag) {
+        if (event.keyCode === 32 || this.flags.touch) {
 
-            if (!this.props.spaceFlag) {
-
-
+            if (!this.flags.turning && !this.flags.collision) {
 
                 var screenCenterInverse = new Vector2(-this.props.screenCenter.x, -this.props.screenCenter.y);
                 var radius = distanceBetween(screenCenterInverse, this.props.activeMapling.controlPosition);
                 if (radius <= this.configs.mapling.minLength + 10) {
 
-                    this.props.spaceFlag = true;
-                    this.props.firstFlag = true;
+                    this.flags.turning = true;
+                    this.flags.moveStart = true;
                 }
-            } else {
-                console.log();
+            }
+
+            if (this.flags.yetToStart || this.flags.helpText) {
+                this.flags.userInterrupt = true;
             }
 
         }
     }
 
     function _onRelease(event) {
-        if (this.props.spaceFlag) {
+        if (this.flags.helpText) {
+            this.flags.helpText = false;
+            this.containers.text.removeChild(this.helpText);
+        }
+        if (this.flags.turning) {
 
-            this.props.touchFlag = false;
-            this.props.spaceFlag = false;
-            this.props.manualOverride = false;
+            this.flags.touch = false;
+            this.flags.turning = false;
+            this.flags.manualOverride = false;
             var curveProps = this.props.curve;
             var rotatedBy = Math.abs(curveProps.mover.rotatedBy);
-            this.props.firstFlag = true;
+            this.flags.moveStart = true;
+
             if (rotatedBy > 60 && !this.props.nextFlag) {
                 _moveToNextMapling.call(this);
             }
+
             if (this.nextFlag) {
                 this.nextFlag = false;
             }
 
-            if(this.props.curve.controlLine)
-            {
+            if (this.props.curve.controlLine) {
                 this.containers.map.removeChild(this.props.curve.controlLine);
             }
+
+            if (!(this.props.activeMapling.id % 15)) {
+                this.props.stepValue += 0.5;
+                this.props.angleStep += 0.1;
+            }
+
+
+        } else {
+            if (this.flags.collision) {
+                this.flags.collision = false;
+                _cleanBeforeStart.call(this);
+                _init.call(this);
+            } else if (this.flags.yetToStart) {
+                this.flags.yetToStart = false;
+                this.flags.helpText = true;
+                this.containers.text.removeChild(this.startText);
+                this.state = _play.bind(this);
+
+                this.helpText = new PIXI.Text("Press And Hold", { fontStyle: "bold", fontSize: "60px", fill: "#AC3232", align: "center", stroke: "#FFFFFF", strokeThickness: 7 });
+                this.helpText.anchor.x = 0.5;
+                this.helpText.anchor.y = 0.5;
+
+                this.helpText.x = this.screen.width / 2;
+                this.helpText.y = this.screen.height / 2;
+
+                this.containers.text.addChild(this.helpText);
+                // this.app.ticker.start();
+            }
+
         }
     }
 
     function _move() {
-        if (this.props.firstFlag) {
-            if (!this.props.spaceFlag) {
+        if (this.flags.moveStart) {
+            if (!this.flags.turning) {
                 var currentAxis = (this.props.direction[0] === 'v') ? 'y' : 'x';
                 this.props.step = this.props.stepValue;
                 if (this.props.direction[1] === 'd' || this.props.direction[1] === 'r') {
                     this.props.step *= -1;
                 }
-                this.props.firstFlag = false;
+                this.flags.moveStart = false;
             } else {
                 var _this = this;
                 var dir = this.props.activeMapling.direction;
@@ -424,8 +461,8 @@ var Game = (function() {
                 var startingAngle = 180 + angle;
                 var radius = distanceBetween(screenCenterInverse, controlPosition);
                 var center = pointOnCircle(initialPosition, angle, radius); // center of the circle that the mapContainer moves in
-                
-                var controlLine = getLine(controlPosition, screenCenterInverse); 
+
+                var controlLine = getLine(controlPosition, screenCenterInverse);
                 this.containers.map.addChild(controlLine);
 
                 var curveTranslatorConfig = {
@@ -435,8 +472,8 @@ var Game = (function() {
                         var pos = pointOnCircle(center, ang, radius);
                         _this.props.manualPosition.x = pos.x;
                         _this.props.manualPosition.y = pos.y;
-                        if(controlLine)
-                        controlLine.angle = curveMover.rotatedBy;
+                        if (controlLine)
+                            controlLine.angle = curveMover.rotatedBy;
 
                         _this.props.curve.angle = ang;
                     },
@@ -451,8 +488,8 @@ var Game = (function() {
                     controlLine: controlLine
                 }
 
-                this.props.manualOverride = true; // starts setting the position of the mapContainer directly
-                this.props.firstFlag = false;
+                this.flags.manualOverride = true; // starts setting the position of the mapContainer directly
+                this.flags.moveStart = false;
 
 
             }
@@ -460,12 +497,10 @@ var Game = (function() {
             this.props.velocity.set(0, 0);
         }
 
-        if (!this.props.diagonalFlag) {
-            if (!this.props.spaceFlag) {
-                this.props.velocity[currentAxis] = this.props.step;
-            } else {
-                this.props.curve.mover.move();
-            }
+        if (!this.flags.turning) {
+            this.props.velocity[currentAxis] = this.props.step;
+        } else {
+            this.props.curve.mover.move();
         }
     }
 
