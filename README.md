@@ -3,6 +3,10 @@ UFO Drift is a simple game clone version of Sling Drift Mobile game. Made with p
 
 The Assets used in this game were been taken from https://opengameart.org
 
+# How to play the game:
+- Press and hold the screen (if on touch supported device) or the space bar (if on computer) to navigate the UFO.
+- The goal is to keep on navigating the UFO without getting out of the path.
+
 # Known issues you may face:
 - The game has visible lag with when run on lesser processing power devices such as mobile phones.  
 - The Procedural map generation algorithm is not good. It keeps on interferring with the current moving path.
