@@ -27,7 +27,8 @@ var Game = (function() {
             manualPosition: new Vector2(),
             screenCenter: new Vector2(),
             flags: {},
-            stepValue: 2,
+            stepValue: 3,
+            angleStep: 2,
             curve: {},
             activeMapling: null,
             direction: null,
@@ -332,7 +333,7 @@ var Game = (function() {
 
                         _this.props.curve.angle = ang;
                     },
-                    step: this.props.stepValue
+                    step: this.props.angleStep
                 }
                 curveMover = new curveTranslator(curveTranslatorConfig);
 
