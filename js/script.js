@@ -3,8 +3,14 @@ var target = document.getElementById('target');
 var _h = window.innerHeight * .8;
 var _w = _h * .8; 
 
-target.style.height = _h;
-target.style.width = _w;
+// target.style.height = _h;
+// target.style.width = _w;
+
+var targetStyles = document.createElement('style');
+
+targetStyles.innerText = `#target{height: ${_h}px; width: ${_w}px; top: 50%; left: 50%; transform: translate(-50%, -50%)}`;
+document.body.appendChild(targetStyles); 
+
 
 var appConfig = {
     width: _w,
