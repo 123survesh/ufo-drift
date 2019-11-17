@@ -129,6 +129,10 @@ var curveTranslator = (function() {
         {
             this.step = this.stepValue;
         }
+
+        this.oscillating = false;
+        this.oscillatedBy = 0;
+        this.degradingFactor = 5;
     }
 
     function _move() {
@@ -141,8 +145,43 @@ var curveTranslator = (function() {
         }
     }
 
+    function _oscillate(movedBy)
+    {
+        if(!this.oscillating)
+        {
+            movedBy = movedBy - 45;
+            this.moveBy = Math.abs(movedBy) / 2;
+            this.oscillating = true;
+        }
+        if(Math.abs(this.oscillatedBy) < this.moveBy)
+        {
+            this.angle -= this.step;
+            this.rotatedBy -= this.step; 
+            this.oscillatedBy -= this.step;
+            this.callback(this.angle);
+        }
+        else
+        {
+            if(this.moveBy > 0)
+            {
+                this.moveBy -= this.degradingFactor;
+                this.step *= -1; 
+                this.oscillatedBy = 0;
+            }
+            else
+            {
+                return 1; // to denote oscillation end
+            }
+        }
+        return 0; // to denote oscillation in progress
+    }
+
     translate.prototype.move = function() {
         _move.call(this);
+    }
+
+    translate.prototype.oscillate = function(oscillateBy) {
+        return _oscillate.call(this, oscillateBy);
     }
 
     translate.prototype.reset = function() {

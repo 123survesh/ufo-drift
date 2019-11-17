@@ -16,7 +16,7 @@ var Game = (function() {
     function _preInit() {
         var _this = this;
         this.app = new PIXI.Application(this.screen);
-        this.app.loader.add(['assets/stars.png', 'assets/ufo.png', 'assets/ball.png']).load(_loadCallback.bind(this));
+        this.app.loader.add(['assets/stars.png', 'assets/racing-car.png', 'assets/ball.png']).load(_loadCallback.bind(this));
         this.target.appendChild(this.app.view);
 
         // this.app.ticker.autoStart = false;
@@ -32,10 +32,10 @@ var Game = (function() {
         this.textures = {};
         // var treeTexture = PIXI.Texture.from('assets/stars.png');
 
-        var ufoTexture = PIXI.Texture.from('assets/ufo.png');
+        var carTexture = PIXI.Texture.from('assets/racing-car.png');
 
         // this.textures["tree"] = treeTexture;
-        this.textures["ufo"] = ufoTexture;
+        this.textures["car"] = carTexture;
         this.textures["ball"] = PIXI.Texture.from('assets/ball.png');
         _init.call(this);
     }
@@ -66,7 +66,9 @@ var Game = (function() {
             yetToStart: true,
             helpText: false,
             collision: false,
-            touch: false
+            touch: false,
+            oscillate: false,
+            maplingShifted: false,
         }
 
         // props -> a place to store all the loose game state variables
@@ -74,6 +76,7 @@ var Game = (function() {
             velocity: new Vector2(),
             manualPosition: new Vector2(),
             screenCenter: new Vector2(),
+            oscillationVelocity: new Vector2(),
             stepValue: 5,
             angleStep: 2,
             curve: {},
@@ -117,14 +120,14 @@ var Game = (function() {
         this.props.screenCenter.set(this.screen.wb2, this.screen.hb2);
 
 
-        var ufo = new PIXI.Sprite(this.textures.ufo);
-        ufo.width = this.screen.width / 5;
-        ufo.height = this.screen.width / 5;
-        ufo.anchor.x = 0.5;
-        ufo.anchor.y = 0.5;
-        ufo.position.y = this.screen.hb2;
-        ufo.position.x = this.screen.wb2;
-        this.containers.player.addChild(ufo);
+        this.car = new PIXI.Sprite(this.textures.car);
+        this.car.width = this.screen.width / 5;
+        this.car.height = this.screen.width / 5;
+        this.car.anchor.x = 0.5;
+        this.car.anchor.y = 0.5;
+        this.car.position.y = this.screen.hb2;
+        this.car.position.x = this.screen.wb2;
+        this.containers.player.addChild(this.car);
 
         // this.containers.controlPoint.zIndex = 2000;
         this.containers.map.addChild(this.containers.path);
@@ -164,6 +167,11 @@ var Game = (function() {
         if (this.flags.manualOverride) {
             this.containers.map.x = this.props.manualPosition.x;
             this.containers.map.y = this.props.manualPosition.y;
+        }
+        else if(this.flags.oscillate)
+        {
+            this.containers.map.x += this.props.oscillationVelocity.x;
+            this.containers.map.y += this.props.oscillationVelocity.y;
         }
         this.props.screenCenter.x = this.containers.map.x - this.screen.wb2;
         this.props.screenCenter.y = this.containers.map.y - this.screen.hb2;
@@ -317,6 +325,11 @@ var Game = (function() {
         _updateScore.call(this, this.props.activeMapling.id);
         var nextMapling = _getNextMapling.call(this, true);
 
+        // oscillation props
+        this.flags.maplingShifted = true;
+        this.props.curve.oscillateBy = 0;
+
+        // updating the next mapling to state vars
         this.props.activeMapling.zIndex = 0;
 
         this.props.activeMapling = nextMapling;
@@ -412,6 +425,14 @@ var Game = (function() {
                 this.props.angleStep += 0.1;
             }
 
+            if(this.flags.maplingShifted)
+            {
+                this.flags.maplingShifted = false;
+                this.flags.oscillate = true;
+                this.props.curve.oscillationStartAt = new Vector2(this.containers.map.x, this.containers.map.y);
+                this.props.oscillationVelocity.set(0, 0);
+            }
+
 
         } else {
             if (this.flags.collision) {
@@ -469,13 +490,32 @@ var Game = (function() {
                     startingAngle: startingAngle,
                     clockwiseFlag: clockwiseFlag,
                     callback: function(ang) {
-                        var pos = pointOnCircle(center, ang, radius);
+                        var pos = pointOnCircle(_this.props.curve.center, ang, _this.props.curve.radius);
                         _this.props.manualPosition.x = pos.x;
                         _this.props.manualPosition.y = pos.y;
                         if (controlLine)
-                            controlLine.angle = curveMover.rotatedBy;
+                            controlLine.angle = _this.props.curve.mover.rotatedBy;
+
+                        // _this.car.angle = curveMover.rotatedBy;
 
                         _this.props.curve.angle = ang;
+                        if(_this.flags.maplingShifted)
+                        {
+                            _this.props.curve.oscillateBy += _this.props.angleStep;
+                        }
+                        else if(_this.flags.oscillate)
+                        {
+                            if(_this.props.activeMapling.direction[0] === 'h')
+                            {
+
+                                _this.props.oscillationVelocity.y = 2;
+                            }
+                            else
+                            {
+                                _this.props.oscillationVelocity.x = 2;
+
+                            }
+                        }
                     },
                     step: this.props.angleStep
                 }
@@ -499,6 +539,13 @@ var Game = (function() {
 
         if (!this.flags.turning) {
             this.props.velocity[currentAxis] = this.props.step;
+            if(this.flags.oscillate)
+            {
+                if(this.props.curve.mover.oscillate(this.props.curve.oscillateBy))
+                {
+                    this.flags.oscillate = false;
+                }    
+            }
         } else {
             this.props.curve.mover.move();
         }
