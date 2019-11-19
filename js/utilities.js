@@ -113,10 +113,10 @@ function canvasToSprite(canvas) {
 
 var curveTranslator = (function() {
     function translate(config) {
-        _init.call(this, config);
-    }
+        this.center = config.center;
+        this.radius = config.radius;
+        this.prevPosition = config.prevPosition;
 
-    function _init(config) {
         this.angle = this.startingAngle = config.startingAngle;
         this.rotatedBy = 0;
         this.clockwiseFlag = config.clockwiseFlag;
@@ -129,10 +129,32 @@ var curveTranslator = (function() {
         {
             this.step = this.stepValue;
         }
+        _init.call(this, config);
+    }
+
+    function _init(config) {
 
         this.oscillating = false;
         this.oscillatedBy = 0;
         this.degradingFactor = 5;
+    }
+
+    function _updateTranslation(conf)
+    {
+        var type = conf.type;
+        var arg = conf.arg;
+        var vel;
+        if(type)// 1 for move and 0 for oscillate 
+        {   
+            _move.call(this);
+            vel = _getVelocity.call(this, this.angle);
+        }
+        else
+        {
+            _oscillate.call(this, arg);
+            vel = _getVelocity.call(this, this.angle);
+        }
+        this.callback(vel);
     }
 
     function _move() {
@@ -143,6 +165,38 @@ var curveTranslator = (function() {
         } else {
             this.angle = 0;
         }
+    }
+
+    function _getVelocity(angle)
+    {
+        var pos = pointOnCircle(this.center, angle, this.radius);
+        var velocity = new Vector2();
+        velocity.x = pos.x - this.prevPosition.x;
+        velocity.y = pos.y - this.prevPosition.y;
+        this.prevPosition = pos;
+        return velocity;
+    }
+
+    function _updateProperties(props)
+    {
+        this.prevPosition = props.prevPosition || this.prevPosition;
+        this.center = props.center || this.center;
+        this.radius = props.radius || this.radius;
+        if(typeof props.radius === 'number')
+        {
+            this.radius = props.radius;   
+        }
+        if(typeof props.startingAngle === 'number')
+        {
+            this.startingAngle = props.startingAngle;
+        }
+
+        if(typeof props.clockwiseFlag === 'boolean')
+        {
+            this.clockwiseFlag = props.clockwiseFlag;
+        }
+        
+
     }
 
     function _oscillate(movedBy)
@@ -177,11 +231,11 @@ var curveTranslator = (function() {
     }
 
     translate.prototype.move = function() {
-        _move.call(this);
+        _updateTranslation.call(this, {type: 1});
     }
 
     translate.prototype.oscillate = function(oscillateBy) {
-        return _oscillate.call(this, oscillateBy);
+        _updateTranslation.call(this, {type:0, arg: oscillateBy});
     }
 
     translate.prototype.reset = function() {

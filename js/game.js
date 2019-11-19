@@ -79,7 +79,15 @@ var Game = (function() {
             oscillationVelocity: new Vector2(),
             stepValue: 5,
             angleStep: 2,
-            curve: {},
+            curve: {
+                velocity: new Vector2(),
+                angle: 0,
+                rotatedBy: 0,
+                radius: 0,
+                center: new Vector2(),
+                mover: null,
+                controlLine: null
+            },
             activeMapling: null,
             direction: null,
         }
@@ -165,13 +173,11 @@ var Game = (function() {
         this.containers.map.x += this.props.velocity.x;
         this.containers.map.y += this.props.velocity.y;
         if (this.flags.manualOverride) {
-            this.containers.map.x = this.props.manualPosition.x;
-            this.containers.map.y = this.props.manualPosition.y;
-        }
-        else if(this.flags.oscillate)
-        {
-            this.containers.map.x += this.props.oscillationVelocity.x;
-            this.containers.map.y += this.props.oscillationVelocity.y;
+            this.containers.map.x += this.props.curve.velocity.x;
+            this.containers.map.y += this.props.curve.velocity.y;
+        } else if (this.flags.oscillate) {
+            // this.containers.map.x += this.props.oscillationVelocity.x;
+            // this.containers.map.y += this.props.oscillationVelocity.y;
         }
         this.props.screenCenter.x = this.containers.map.x - this.screen.wb2;
         this.props.screenCenter.y = this.containers.map.y - this.screen.hb2;
@@ -198,12 +204,11 @@ var Game = (function() {
         var firstMapling = this.assembler.getMapling(0, true);
 
         // move the mapContainer to the starting position
-        this.props.manualPosition.x = ((this.screen.width - firstMapling.width) / 2) - firstMapling.position.x;
-        this.props.manualPosition.y = this.screen.height - (firstMapling.position.y + firstMapling.height);
+        this.containers.map.x = ((this.screen.width - firstMapling.width) / 2) - firstMapling.position.x;
+        this.containers.map.y = this.screen.height - (firstMapling.position.y + firstMapling.height);
 
-        // this.props.manualPosition.invert();
         this.props.velocity.set(0, 0);
-        this.flags.manualOverride = true;
+        // this.flags.manualOverride = true;
         _updatePosition.call(this);
 
         this.props.activeMapling = firstMapling;
@@ -376,8 +381,11 @@ var Game = (function() {
     function _onPress(event) {
         if (event.keyCode === 32 || this.flags.touch) {
 
-            if (!this.flags.turning && !this.flags.collision) {
-
+            if (this.flags.yetToStart) {
+                this.flags.userInterrupt = true;
+            }
+            if (!this.flags.turning && !this.flags.collision && !this.flags.userInterrupt) {
+                this.flags.manualOverride = true;
                 var screenCenterInverse = new Vector2(-this.props.screenCenter.x, -this.props.screenCenter.y);
                 var radius = distanceBetween(screenCenterInverse, this.props.activeMapling.controlPosition);
                 if (radius <= this.configs.mapling.minLength + 10) {
@@ -387,73 +395,73 @@ var Game = (function() {
                 }
             }
 
-            if (this.flags.yetToStart || this.flags.helpText) {
-                this.flags.userInterrupt = true;
-            }
 
         }
     }
 
     function _onRelease(event) {
-        if (this.flags.helpText) {
-            this.flags.helpText = false;
-            this.containers.text.removeChild(this.helpText);
-        }
-        if (this.flags.turning) {
-
-            this.flags.touch = false;
-            this.flags.turning = false;
-            this.flags.manualOverride = false;
-            var curveProps = this.props.curve;
-            var rotatedBy = Math.abs(curveProps.mover.rotatedBy);
-            this.flags.moveStart = true;
-
-            if (rotatedBy > 60 && !this.props.nextFlag) {
-                _moveToNextMapling.call(this);
+        if (event.keyCode === 32 || this.flags.touch) {
+            if (this.flags.helpText) {
+                this.flags.helpText = false;
+                this.containers.text.removeChild(this.helpText);
             }
+            if (this.flags.turning) {
 
-            if (this.nextFlag) {
-                this.nextFlag = false;
-            }
+                this.flags.touch = false;
+                this.flags.turning = false;
+                this.flags.manualOverride = false;
+                var curveProps = this.props.curve;
+                var rotatedBy = Math.abs(curveProps.mover.rotatedBy);
+                this.flags.moveStart = true;
 
-            if (this.props.curve.controlLine) {
-                this.containers.map.removeChild(this.props.curve.controlLine);
-            }
+                if (rotatedBy > 60 && !this.props.nextFlag) {
+                    _moveToNextMapling.call(this);
+                }
 
-            if (!(this.props.activeMapling.id % 15)) {
-                this.props.stepValue += 0.5;
-                this.props.angleStep += 0.1;
-            }
+                if (this.nextFlag) {
+                    this.nextFlag = false;
+                }
 
-            if(this.flags.maplingShifted)
-            {
-                this.flags.maplingShifted = false;
-                this.flags.oscillate = true;
-                this.props.curve.oscillationStartAt = new Vector2(this.containers.map.x, this.containers.map.y);
-                this.props.oscillationVelocity.set(0, 0);
-            }
+                if (this.props.curve.controlLine) {
+                    this.containers.map.removeChild(this.props.curve.controlLine);
+                }
+
+                if (!(this.props.activeMapling.id % 15)) {
+                    this.props.stepValue += 0.5;
+                    this.props.angleStep += 0.1;
+                }
+
+                if (this.flags.maplingShifted) {
+                    this.flags.maplingShifted = false;
+                    this.flags.oscillate = true;
+                    this.props.curve.oscillationStartAt = new Vector2(this.containers.map.x, this.containers.map.y);
+                    this.props.oscillationVelocity.set(0, 0);
+                }
 
 
-        } else {
-            if (this.flags.collision) {
-                this.flags.collision = false;
-                _cleanBeforeStart.call(this);
-                _init.call(this);
-            } else if (this.flags.yetToStart) {
-                this.flags.yetToStart = false;
-                this.flags.helpText = true;
-                this.containers.text.removeChild(this.startText);
-                this.state = _play.bind(this);
+            } else {
+                if (this.flags.collision) {
+                    this.flags.collision = false;
+                    _cleanBeforeStart.call(this);
+                    _init.call(this);
+                } else if (this.flags.yetToStart) {
+                    this.flags.yetToStart = false;
+                    this.flags.userInterrupt = false;
+                    this.flags.helpText = true;
+                    this.containers.text.removeChild(this.startText);
+                    this.state = _play.bind(this);
 
-                this.helpText = new PIXI.Text("Press And Hold", { fontStyle: "bold", fontSize: "60px", fill: "#AC3232", align: "center", stroke: "#FFFFFF", strokeThickness: 7 });
-                this.helpText.anchor.x = 0.5;
-                this.helpText.anchor.y = 0.5;
+                    this.helpText = new PIXI.Text("Press And Hold", { fontStyle: "bold", fontSize: "60px", fill: "#AC3232", align: "center", stroke: "#FFFFFF", strokeThickness: 7 });
+                    this.helpText.anchor.x = 0.5;
+                    this.helpText.anchor.y = 0.5;
 
-                this.helpText.x = this.screen.width / 2;
-                this.helpText.y = this.screen.height / 2;
+                    this.helpText.x = this.screen.width / 2;
+                    this.helpText.y = this.screen.height / 2;
 
-                this.containers.text.addChild(this.helpText);
-                // this.app.ticker.start();
+                    this.containers.text.addChild(this.helpText);
+                    // this.app.ticker.start();
+                }
+
             }
 
         }
@@ -487,34 +495,26 @@ var Game = (function() {
                 this.containers.map.addChild(controlLine);
 
                 var curveTranslatorConfig = {
+                    center: center,
+                    radius: radius,
+                    prevPosition: initialPosition,
                     startingAngle: startingAngle,
                     clockwiseFlag: clockwiseFlag,
-                    callback: function(ang) {
-                        var pos = pointOnCircle(_this.props.curve.center, ang, _this.props.curve.radius);
-                        _this.props.manualPosition.x = pos.x;
-                        _this.props.manualPosition.y = pos.y;
+                    callback: function(vel) {
+                        // var pos = pointOnCircle(_this.props.curve.center, ang, _this.props.curve.radius);
+                        // _this.props.manualPosition.x = pos.x;
+                        // _this.props.manualPosition.y = pos.y;
                         if (controlLine)
                             controlLine.angle = _this.props.curve.mover.rotatedBy;
 
-                        // _this.car.angle = curveMover.rotatedBy;
+                        // // _this.car.angle = curveMover.rotatedBy;
 
-                        _this.props.curve.angle = ang;
-                        if(_this.flags.maplingShifted)
-                        {
+                        // _this.props.curve.angle = ang;
+                        _this.props.curve.velocity = vel;
+                        if (_this.flags.maplingShifted) {
                             _this.props.curve.oscillateBy += _this.props.angleStep;
-                        }
-                        else if(_this.flags.oscillate)
-                        {
-                            if(_this.props.activeMapling.direction[0] === 'h')
-                            {
+                        } else if (_this.flags.oscillate) {
 
-                                _this.props.oscillationVelocity.y = 2;
-                            }
-                            else
-                            {
-                                _this.props.oscillationVelocity.x = 2;
-
-                            }
                         }
                     },
                     step: this.props.angleStep
@@ -539,12 +539,10 @@ var Game = (function() {
 
         if (!this.flags.turning) {
             this.props.velocity[currentAxis] = this.props.step;
-            if(this.flags.oscillate)
-            {
-                if(this.props.curve.mover.oscillate(this.props.curve.oscillateBy))
-                {
+            if (this.flags.oscillate) {
+                if (this.props.curve.mover.oscillate(this.props.curve.oscillateBy)) {
                     this.flags.oscillate = false;
-                }    
+                }
             }
         } else {
             this.props.curve.mover.move();
