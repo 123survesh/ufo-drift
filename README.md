@@ -1,4 +1,4 @@
-# ufo-drift
+# UFO Drift
 UFO Drift is a simple game clone version of Sling Drift Mobile game. Made with pixi.js.
 
 Check the game here: https://123survesh.github.io/ufo-drift
